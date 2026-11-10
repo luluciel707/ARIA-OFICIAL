@@ -447,9 +447,9 @@ function initializeVoice() {
 // INICIALIZACIÓN
 // ======================================
 
-function applyRestPose(vrm) {
+function applyRestPose(vrm, armSign) {
     const humanoid = vrm?.humanoid;
-    const angle = CONFIG.gestures.armDownAngle * CONFIG.gestures.armSign;
+    const angle = CONFIG.gestures.armDownAngle * armSign;
     const set = (name, z) => humanoid?.getNormalizedBoneNode?.(name)?.rotation.set(0, 0, z);
     set("leftUpperArm", -angle);
     set("rightUpperArm", angle);
@@ -485,17 +485,17 @@ async function initializeARIA() {
             height: model.height
         });
 
-        // Red de seguridad: brazos abajo desde el primer cuadro, pase lo que pase después.
-        safeStep("la pose de reposo", () => applyRestPose(model.vrm));
-
         // 3. Crear controladores del avatar
         expressions = new ExpressionController(model.vrm);
         gestures = new GestureController(model.vrm);
 
+        // Red de seguridad: brazos abajo desde el primer cuadro, pase lo que pase después.
+        safeStep("la pose de reposo", () => applyRestPose(model.vrm, gestures.armSign));
+
         // Datos del modelo en pantalla, para diagnosticar problemas de pose.
         const armBones = gestures.getCapabilities().bones;
         showMessage(
-            `Modelo VRM ${model.vrm.meta?.metaVersion ?? "?"} · brazos: ${armBones.leftUpperArm && armBones.rightUpperArm ? "ok" : "NO ENCONTRADOS"}`,
+            `Modelo VRM ${model.vrm.meta?.metaVersion ?? "?"} · brazos: ${armBones.leftUpperArm && armBones.rightUpperArm ? "ok" : "NO ENCONTRADOS"} (orientación ${gestures.armSign})`,
             9000
         );
 
