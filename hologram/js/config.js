@@ -43,9 +43,10 @@ export const CONFIG = Object.freeze({
 
   gestures: Object.freeze({
     armDownAngle: 1.2,
-    armSign: 1,
+    // 'auto' detecta si el modelo es VRM 0.x o 1.0. Poné 1 o -1 solo para forzarlo a mano.
+    armSign: 'auto',
     // Si al hablar los brazos van hacia atrás en lugar de hacia adelante, cambialo a -1.
-    forwardSign: 1,
+    forwardSign: 'auto',
   }),
 
   // Cuánto se mueve el cuerpo en general: 0 = casi quieta, 1 = natural, 1.5 = muy expresiva.
