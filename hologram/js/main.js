@@ -422,6 +422,17 @@ function initializeVoice() {
 // INICIALIZACIÓN
 // ======================================
 
+// Ejecuta un paso que no es vital: si falla, muestra el motivo exacto y ARIA sigue funcionando.
+function safeStep(name, fn) {
+    try {
+        return fn();
+    } catch (error) {
+        console.error(`[ARIA] Falló ${name}:`, error);
+        showMessage(`Error en ${name}: ${error.message}`, 60000);
+        return null;
+    }
+}
+
 async function initializeARIA() {
     setConnection(false);
     setState(STATES.THINKING);
@@ -448,6 +459,10 @@ async function initializeARIA() {
         console.log("Expresiones:", expressions.getCapabilities());
         console.log("Gestos:", gestures.getCapabilities());
 
+        // El bucle de dibujo arranca ya: así ARIA siempre baja los brazos (pose de reposo)
+        // y se ve, aunque algo falle más adelante en la voz o en la conexión con el cerebro.
+        startAnimation();
+
         loadCustomAnimations();
         gestures.onAnimationEvent = (event) => {
             if (event.type === "expression") {
@@ -460,27 +475,31 @@ async function initializeARIA() {
         };
 
         // 4. Crear sistema de voz
-        initializeVoice();
+        safeStep("la voz", () => initializeVoice());
 
         // 5. Crear comunicación con el cerebro
-        communication = new Communication();
-        registerCommunication();
+        safeStep("la conexión con el cerebro", () => {
+            communication = new Communication();
+            registerCommunication();
 
-        const transportInfo = communication.start();
-        console.log("Transportes:", transportInfo);
+            const transportInfo = communication.start();
+            console.log("Transportes:", transportInfo);
 
-        transportInfo.warnings.forEach((warning) => {
-            console.warn(warning);
-            showMessage(warning, 7000);
+            transportInfo.warnings.forEach((warning) => {
+                console.warn(warning);
+                showMessage(warning, 7000);
+            });
         });
 
         // 6. Avisar que el holograma está preparado
-        communication.send(MESSAGE_TYPES.HOLOGRAM_READY, {
-            name: model.name,
-            height: model.height,
-            expressions: expressions.getCapabilities(),
-            gestures: gestures.getCapabilities(),
-            voice: voice.getCapabilities()
+        safeStep("el aviso al cerebro", () => {
+            communication?.send(MESSAGE_TYPES.HOLOGRAM_READY, {
+                name: model.name,
+                height: model.height,
+                expressions: expressions.getCapabilities(),
+                gestures: gestures.getCapabilities(),
+                voice: voice?.getCapabilities() ?? null
+            });
         });
 
         // 7. Informar capacidades al usuario
@@ -491,9 +510,6 @@ async function initializeARIA() {
         // Latido: el editor (y el cerebro) saben que el holograma está vivo.
         statusTimer = setInterval(sendStatus, CONFIG.statusIntervalMs);
         sendStatus();
-
-        // 8. Iniciar animación
-        startAnimation();
 
     } catch (error) {
         console.error("Error inicializando ARIA:", error);
