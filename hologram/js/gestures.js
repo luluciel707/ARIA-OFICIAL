@@ -51,16 +51,30 @@ const DIRECTIONS = {
 };
 
 const ARM = CONFIG.gestures.armDownAngle;
-const SIGN = CONFIG.gestures.armSign;
-const FWD = CONFIG.gestures.forwardSign ?? 1;
 const ELBOW_REST = 0.14;
 
+// Orientación de los brazos. Los VRM 0.x y 1.0 usan ejes opuestos (miran a -Z y +Z), así que el
+// signo se detecta solo al cargar el modelo (ver el constructor). En config.js, armSign y
+// forwardSign valen 'auto' por defecto; poné 1 o -1 solo si querés forzarlos a mano.
+let SIGN = 1;
+let FWD = 1;
+
 const IDLE_POSE = {
-  leftUpperArm: [0, 0, -ARM * SIGN],
-  rightUpperArm: [0, 0, ARM * SIGN],
-  leftLowerArm: [0, -FWD * ELBOW_REST, 0],
-  rightLowerArm: [0, FWD * ELBOW_REST, 0],
+  leftUpperArm: [0, 0, 0],
+  rightUpperArm: [0, 0, 0],
+  leftLowerArm: [0, 0, 0],
+  rightLowerArm: [0, 0, 0],
 };
+
+function setArmOrientation(sign, forward) {
+  SIGN = sign;
+  FWD = forward;
+  IDLE_POSE.leftUpperArm = [0, 0, -ARM * SIGN];
+  IDLE_POSE.rightUpperArm = [0, 0, ARM * SIGN];
+  IDLE_POSE.leftLowerArm = [0, -FWD * ELBOW_REST, 0];
+  IDLE_POSE.rightLowerArm = [0, FWD * ELBOW_REST, 0];
+}
+setArmOrientation(1, 1);
 
 // Posturas por ánimo. Todos los valores son en radianes salvo energy y sway (multiplicadores).
 //   energy: cuánto gesticula al hablar     headPitch: + baja la cabeza, - la sube
@@ -235,6 +249,14 @@ export class GestureController {
         : null;
       if (node) this.bones[name] = node;
     }
+
+    // Hacia qué lado (en los ejes del modelo) está el brazo izquierdo: +X en VRM 1.0, -X en VRM 0.x.
+    const elbowX = this.bones.leftLowerArm ? this.bones.leftLowerArm.position.x : 1;
+    this.autoSide = elbowX < 0 ? -1 : 1;
+    const manual = (v) => (v === 1 || v === -1 ? v : null);
+    this.armSign = manual(CONFIG.gestures.armSign) ?? this.autoSide;
+    this.forwardSign = manual(CONFIG.gestures.forwardSign) ?? this.autoSide;
+    setArmOrientation(this.armSign, this.forwardSign);
 
     this.motion = clamp(Number(CONFIG.motion?.amount ?? 1), 0, 2);
     this.t = 0;
