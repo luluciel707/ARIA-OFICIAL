@@ -26,6 +26,31 @@ if (!canvas || !listenButton || !fullscreenButton) {
     throw new Error("Faltan elementos HTML necesarios para ARIA HOLOGRAM.");
 }
 
+const BUILD = "v2-diagnostico";
+
+// Panel de errores: muestra en pantalla el motivo exacto, sin necesidad de abrir la consola.
+function showFatal(text) {
+    console.error("[ARIA]", text);
+    let box = document.getElementById("hud-error");
+    if (!box) {
+        box = document.createElement("pre");
+        box.id = "hud-error";
+        box.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:50;margin:0;padding:8px 10px;"
+            + "max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.4 monospace;"
+            + "color:#ffe3e3;background:rgba(110,0,0,.88);border:1px solid #ff6b6b;border-radius:8px;";
+        document.body.appendChild(box);
+    }
+    box.textContent += text + "\n";
+}
+
+function describeError(error) {
+    const stack = String(error?.stack || "").split("\n").slice(0, 3).join(" | ");
+    return `${error?.message || error}${stack ? "  ::  " + stack : ""}`;
+}
+
+window.addEventListener("error", (event) => showFatal(`Error: ${event.message} (${event.filename?.split("/").pop()}:${event.lineno})`));
+window.addEventListener("unhandledrejection", (event) => showFatal(`Error: ${describeError(event.reason)}`));
+
 let avatar = null;
 let expressions = null;
 let gestures = null;
@@ -422,13 +447,21 @@ function initializeVoice() {
 // INICIALIZACIÓN
 // ======================================
 
+function applyRestPose(vrm) {
+    const humanoid = vrm?.humanoid;
+    const angle = CONFIG.gestures.armDownAngle * CONFIG.gestures.armSign;
+    const set = (name, z) => humanoid?.getNormalizedBoneNode?.(name)?.rotation.set(0, 0, z);
+    set("leftUpperArm", -angle);
+    set("rightUpperArm", angle);
+    vrm.update?.(0);
+}
+
 // Ejecuta un paso que no es vital: si falla, muestra el motivo exacto y ARIA sigue funcionando.
 function safeStep(name, fn) {
     try {
         return fn();
     } catch (error) {
-        console.error(`[ARIA] Falló ${name}:`, error);
-        showMessage(`Error en ${name}: ${error.message}`, 60000);
+        showFatal(`Falló ${name}: ${describeError(error)}`);
         return null;
     }
 }
@@ -436,7 +469,7 @@ function safeStep(name, fn) {
 async function initializeARIA() {
     setConnection(false);
     setState(STATES.THINKING);
-    showMessage("Inicializando ARIA HOLOGRAM...");
+    showMessage(`Inicializando ARIA HOLOGRAM (${BUILD})...`);
 
     try {
         // 1. Crear escena
@@ -451,6 +484,9 @@ async function initializeARIA() {
             name: model.name,
             height: model.height
         });
+
+        // Red de seguridad: brazos abajo desde el primer cuadro, pase lo que pase después.
+        safeStep("la pose de reposo", () => applyRestPose(model.vrm));
 
         // 3. Crear controladores del avatar
         expressions = new ExpressionController(model.vrm);
@@ -514,13 +550,26 @@ async function initializeARIA() {
     } catch (error) {
         console.error("Error inicializando ARIA:", error);
         setState(STATES.ERROR);
-        showMessage(`No pude iniciar: ${error.message}`, 10000);
+        showFatal(`No pude iniciar: ${describeError(error)}`);
     }
 }
 
 // ======================================
 // ANIMACIÓN
 // ======================================
+
+const reportedLoopErrors = new Set();
+
+// Cada parte del bucle va protegida: si una falla, las demás siguen y el error se muestra una sola vez.
+function guard(name, fn) {
+    try {
+        fn();
+    } catch (error) {
+        if (reportedLoopErrors.has(name)) return;
+        reportedLoopErrors.add(name);
+        showFatal(`Falló ${name}: ${describeError(error)}`);
+    }
+}
 
 function startAnimation() {
     if (animationStarted) return;
@@ -532,13 +581,13 @@ function startAnimation() {
         const dt = Math.min(clock.getDelta(), 0.05);
 
         // Los controladores actualizan sus objetivos.
-        expressions?.update(dt);
-        gestures?.update(dt);
+        guard("las expresiones", () => expressions?.update(dt));
+        guard("los gestos", () => gestures?.update(dt));
 
         // AvatarScene actualiza VRM y efectos.
         if (avatar) {
-            avatar.update(dt);
-            avatar.render();
+            guard("el avatar (update)", () => avatar.update(dt));
+            guard("el avatar (render)", () => avatar.render());
         }
     }
 
