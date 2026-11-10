@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#07111f">
+
+    <title>ARIA BRAIN</title>
+
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+    <main class="app">
+
+        <header>
+            <div class="logo">A</div>
+
+            <div>
+                <h1>ARIA</h1>
+                <p>PERSONAL AI SYSTEM</p>
+            </div>
+
+            <span id="brainStatus" class="status">
+                ● INICIANDO
+            </span>
+        </header>
+
+        <section class="welcome">
+            <h2>¡Hola! Soy ARIA. ✨</h2>
+
+            <p>
+                Mi núcleo está activo.
+                ¿Qué hacemos hoy?
+            </p>
+        </section>
+
+        <section class="ai-bar">
+            <span id="aiStatus">IA generativa: apagada</span>
+            <progress id="aiProgress" max="1" value="0" hidden></progress>
+            <button id="aiButton" type="button">Activar IA generativa</button>
+        </section>
+
+        <section id="chat" class="chat" aria-live="polite">
+
+            <div class="message aria">
+                ¡Estoy lista para conversar!
+            </div>
+
+        </section>
+
+        <form id="messageForm">
+
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Escribime algo..."
+                autocomplete="off"
+                required
+            >
+
+            <button id="sendButton" type="submit">
+                Enviar ✦
+            </button>
+
+        </form>
+
+        <footer>
+            ARIA BRAIN v0.1 · LOCAL SYSTEM
+        </footer>
+
+    </main>
+
+    <script type="module">
+
+        import { ariaBrain } from "./js/core.js";
+
+        const chat = document.getElementById("chat");
+        const form = document.getElementById("messageForm");
+        const input = document.getElementById("messageInput");
+        const status = document.getElementById("brainStatus");
+        const sendButton = document.getElementById("sendButton");
+
+        function addMessage(content, type) {
+
+            const element = document.createElement("div");
+
+            element.className = `message ${type}`;
+            element.textContent = content;
+
+            chat.appendChild(element);
+
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Estado del cerebro.
+        function updateStatus() {
+
+            if (!ariaBrain.initialized) {
+                status.textContent = "● ERROR";
+                return;
+            }
+
+            status.textContent = "● BRAIN ACTIVO";
+        }
+
+        updateStatus();
+
+        // Enviar mensajes.
+        form.addEventListener("submit", async (event) => {
+
+            event.preventDefault();
+
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            addMessage(message, "user");
+
+            input.value = "";
+            input.disabled = true;
+            sendButton.disabled = true;
+
+            try {
+
+                const response =
+                    await ariaBrain.processMessage(message);
+
+                if (response) {
+                    addMessage(response, "aria");
+                }
+
+            } catch (error) {
+
+                console.error("Error en el chat:", error);
+
+                addMessage(
+                    "Tuve un problema al procesar ese mensaje.",
+                    "aria"
+                );
+
+            } finally {
+
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.focus();
+
+            }
+
+        });
+
+        // IA generativa del navegador: estado y botón.
+        const aiStatus = document.getElementById("aiStatus");
+        const aiProgress = document.getElementById("aiProgress");
+        const aiButton = document.getElementById("aiButton");
+        const ai = ariaBrain.ai;
+
+        function renderAI() {
+            const busy = ai.state === "loading";
+            aiStatus.textContent = "IA generativa: " + (ai.state === "ready" ? "activa" : ai.text.toLowerCase());
+            aiProgress.hidden = !busy;
+            aiProgress.value = ai.progress;
+            aiButton.disabled = busy || !ai.supported;
+            aiButton.textContent = ai.state === "ready" ? "Apagar IA generativa" : "Activar IA generativa";
+            if (!ai.supported) aiStatus.textContent = "IA generativa: tu navegador no tiene WebGPU";
+        }
+
+        ai.addEventListener("status", renderAI);
+        renderAI();
+
+        aiButton.addEventListener("click", () => {
+            if (ai.state === "ready") { ai.disable(); return; }
+            ai.enable().then(() => {
+                ariaBrain.announce("Ya estoy lista. Ahora puedo conversar con vos sobre muchos más temas.");
+            }).catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
+        });
+
+        // Respuestas que no nacen del chat (por voz o avisos del sistema).
+        window.addEventListener("aria:response", (event) => addMessage(event.detail, "aria"));
+
+        // Exponer una pequeña función de diagnóstico.
+        window.ariaChat = {
+            refresh: updateStatus,
+            addMessage
+        };
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARIA · Editor de poses</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #0a0912; --card: #13112a; --card2: #1a1738; --line: rgba(155, 107, 255, .28);
+    --txt: #e9e6ff; --muted: #9a95c4; --violet: #9b6bff; --cyan: #22e6ff; --ok: #3ddc97; --warn: #ffb454; --bad: #ff6b8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--txt);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(370px, 470px); height: 100vh; }
+  .stage { position: relative; background: #000; min-height: 0; }
+  .stage iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .link { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center;
+    padding: 6px 12px; border-radius: 999px; background: rgba(10, 9, 18, .85); border: 1px solid var(--line); font-size: 12px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .link.on .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .tip { position: absolute; right: 12px; bottom: 12px; padding: 6px 12px; border-radius: 999px;
+    background: rgba(10, 9, 18, .85); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+  .panel { overflow-y: auto; padding: 16px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+  h1 { font-size: 18px; margin: 0 0 4px; letter-spacing: .02em; }
+  h2 { font-size: 14px; margin: 0 0 10px; color: var(--cyan); letter-spacing: .04em; text-transform: uppercase; }
+  p { margin: 0 0 8px; }
+  .hint { color: var(--muted); font-size: 12.5px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row:last-child { margin-bottom: 0; }
+  .grow { flex: 1 1 140px; min-width: 0; }
+
+  button, select, input[type="text"], input[type="number"] {
+    font: inherit; color: var(--txt); background: var(--card2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--violet); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: linear-gradient(135deg, #6f3df0, #2a8ea8); border-color: transparent; font-weight: 600; }
+  button.danger:hover:not(:disabled) { border-color: var(--bad); color: var(--bad); }
+  button.mini { padding: 2px 8px; font-size: 12px; }
+  input[type="number"] { width: 70px; }
+  input[type="range"] { accent-color: var(--violet); width: 100%; min-width: 0; }
+  input[type="checkbox"] { accent-color: var(--violet); }
+  label.inline { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+  details.group { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: var(--card2); }
+  details.group > summary { cursor: pointer; padding: 8px 12px; font-weight: 600; }
+  .bone { padding: 8px 12px 10px; border-top: 1px solid var(--line); }
+  .bone.on { background: rgba(155, 107, 255, .09); }
+  .bone.off { opacity: .45; }
+  .bone-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .axis { display: grid; grid-template-columns: 112px 1fr 64px; gap: 8px; align-items: center; margin: 2px 0; }
+  .axis-name { font-weight: 700; color: var(--cyan); }
+  .axis-name small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; line-height: 1.1; }
+  .axis input[type="number"] { width: 64px; padding: 3px 6px; }
+
+  .timeline { position: relative; height: 38px; border-radius: 8px; background: var(--card2); border: 1px solid var(--line);
+    margin: 6px 0 4px; cursor: crosshair; }
+  .marker { position: absolute; top: 7px; width: 14px; height: 22px; margin-left: -7px; padding: 0; border-radius: 4px;
+    background: var(--violet); border: 1px solid #fff3; }
+  .marker.sel { background: var(--cyan); }
+  .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ok); pointer-events: none; display: none; }
+  .scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+
+  .kf { display: grid; grid-template-columns: 22px 92px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px;
+    border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; background: var(--card2); }
+  .kf.sel { border-color: var(--cyan); }
+  .kf-i { color: var(--muted); text-align: center; }
+  .kf-t input { width: 66px; padding: 3px 6px; }
+  .kf-info { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kf-actions { display: flex; gap: 4px; }
+  .kf-actions button { padding: 2px 8px; font-size: 12px; }
+
+  output { min-width: 34px; text-align: right; color: var(--muted); font-size: 12px; }
+  code { background: var(--card2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12px; }
+  .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+    background: #1d1a3d; border: 1px solid var(--violet); border-radius: 10px; padding: 9px 16px; transition: .2s; max-width: 90vw; z-index: 10; }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+    .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="stage">
+    <iframe id="preview" src="../hologram/" allow="autoplay; fullscreen" title="Vista previa de ARIA"></iframe>
+    <div class="link" id="link"><span class="dot"></span><span id="linkText">Esperando al holograma…</span></div>
+    <div class="tip">Arrastrá sobre ARIA para girarla y ver la pose de costado</div>
+  </main>
+
+  <aside class="panel">
+    <header>
+      <h1>Editor de poses de ARIA</h1>
+      <p class="hint">1) Tildá <b>controlar</b> en un hueso y mové los deslizadores: ARIA sigue tu pose al instante.
+        2) Guardá varias poses como <b>keyframes</b>. 3) Reproducí, ponele un nombre y listo: el cerebro la puede disparar.</p>
+      <p class="hint">Los valores son grados <b>respecto a la pose de reposo</b> (0 = reposo). Qué hace cada eje puede cambiar según el modelo: probá cada uno.</p>
+    </header>
+
+    <section class="card">
+      <h2>1 · Pose</h2>
+      <div class="row">
+        <button id="btnAll" type="button">Controlar todos</button>
+        <button id="btnNone" type="button">Soltar todos</button>
+        <button id="btnZero" type="button">Todo a reposo</button>
+      </div>
+      <div class="row">
+        <button id="btnMirrorLR" type="button" title="Copia los brazos y piernas de ARIA izquierda a derecha, en espejo">Espejar izq → der</button>
+        <button id="btnMirrorRL" type="button" title="Copia los brazos y piernas de ARIA derecha a izquierda, en espejo">Espejar der → izq</button>
+        <span class="hint" id="ctlCount">0 huesos controlados</span>
+      </div>
+      <div id="bones"></div>
+    </section>
+
+    <section class="card">
+      <h2>2 · Cara</h2>
+      <div class="row">
+        <select id="exprName" class="grow"></select>
+        <label class="inline" title="Si está tildado, la cara cambia mientras movés los controles"><input type="checkbox" id="exprLive" checked> ver en vivo</label>
+      </div>
+      <div class="row">
+        <span class="hint">Intensidad</span>
+        <input type="range" id="exprInt" class="grow" min="0" max="1" step="0.05" value="0.7">
+        <output id="exprIntOut">0.70</output>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Animación</h2>
+      <div class="row">
+        <label class="inline"><input type="checkbox" id="animLoop"> repetir en bucle</label>
+        <label class="inline">transición
+          <select id="animEase"><option value="smooth">suave</option><option value="linear">lineal</option></select>
+        </label>
+      </div>
+      <div class="row">
+        <span class="hint">Velocidad</span>
+        <input type="range" id="animSpeed" class="grow" min="0.25" max="2" step="0.05" value="1">
+        <output id="animSpeedOut">1.00×</output>
+      </div>
+
+      <div class="timeline" id="timeline" title="Hacé clic para elegir en qué segundo va el próximo keyframe">
+        <div class="playhead" id="playhead"></div>
+      </div>
+      <div class="scale"><span>0 s</span><span id="tlEnd">2 s</span></div>
+
+      <div class="row">
+        <label class="inline">Tiempo <input type="number" id="kfTime" min="0" max="600" step="0.1" value="0"> s</label>
+        <label class="inline" title="Guarda también la cara elegida arriba"><input type="checkbox" id="kfExpr"> incluir la cara</label>
+        <button id="btnCapture" class="primary" type="button">Capturar keyframe</button>
+      </div>
+      <div id="kfList"></div>
+      <p class="hint" id="kfEmpty">Todavía no hay keyframes. Armá una pose, elegí el segundo y capturá.</p>
+
+      <div class="row">
+        <button id="btnPlay" class="primary" type="button">Reproducir</button>
+        <button id="btnStop" type="button" disabled>Detener</button>
+        <button id="btnClear" class="danger" type="button">Vaciar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4 · Guardar y usar</h2>
+      <div class="row">
+        <input type="text" id="animName" class="grow" placeholder="nombre, ej: saludo-tierno" maxlength="32" autocomplete="off">
+        <button id="btnSave" class="primary" type="button">Guardar</button>
+      </div>
+      <div class="row">
+        <select id="libSelect" class="grow"></select>
+        <button id="btnLoad" type="button">Abrir</button>
+        <button id="btnDel" class="danger" type="button">Borrar</button>
+      </div>
+      <div class="row">
+        <button id="btnExport" type="button">Descargar .json</button>
+        <button id="btnImport" type="button">Abrir .json</button>
+        <input type="file" id="fileImport" accept=".json,application/json" hidden>
+        <button id="btnCopy" type="button">Copiar comando de prueba</button>
+      </div>
+      <p class="hint">Una animación guardada se dispara por nombre: <code>GESTURE { name: "tu-nombre" }</code>
+        o dentro de un <code>SAY</code> con <code>gesture: "tu-nombre"</code>. Se guarda en este navegador.</p>
+      <p class="hint" id="libInfo"></p>
+    </section>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // Deben coincidir con hologram/js/config.js
+  const CHANNEL = 'aria-hologram';
+  const STORAGE_KEY = 'aria.animations';
+
+  // Nombres que ya usa el holograma: una animación propia no puede llamarse así.
+  const RESERVED = ['wave', 'saludar', 'saludo', 'nod', 'asentir', 'shake', 'negar', 'shrug', 'encogerse', 'encoger',
+    'think', 'pensar', 'pensando', 'bow', 'reverencia', 'agradecer', 'inclinar', 'cheer', 'celebrar', 'festejar',
+    'emocion', 'tilt', 'ladear', 'curiosa', 'look', 'mirar', 'softnod'];
+
+  const EXPRESSIONS = [['neutral', 'Neutral'], ['happy', 'Feliz'], ['sad', 'Triste'], ['surprised', 'Sorprendida'],
+    ['angry', 'Enojada'], ['thinking', 'Pensativa'], ['confused', 'Confundida']];
+
+  const TORSO = ['inclinar adelante / atrás', 'girar', 'ladear'];
+  const BONE_GROUPS = [
+    { title: 'Cabeza y torso', open: true, bones: [
+      { id: 'head', label: 'Cabeza', range: 70, axes: ['asentir / mirar arriba', 'girar', 'ladear'] },
+      { id: 'neck', label: 'Cuello', range: 50, axes: ['asentir / mirar arriba', 'girar', 'ladear'] },
+      { id: 'upperChest', label: 'Pecho alto', range: 40, axes: TORSO },
+      { id: 'chest', label: 'Pecho', range: 40, axes: TORSO },
+      { id: 'spine', label: 'Columna', range: 45, axes: TORSO },
+      { id: 'hips', label: 'Caderas', range: 30, axes: TORSO },
+    ] },
+    { title: 'Brazo izquierdo de ARIA (a la derecha en pantalla)', bones: armBones('left', 'izq.') },
+    { title: 'Brazo derecho de ARIA (a la izquierda en pantalla)', bones: armBones('right', 'der.') },
+    { title: 'Piernas', bones: [
+      { id: 'leftUpperLeg', label: 'Muslo izq.', range: 45, axes: ['adelante / atrás', 'girar', 'abrir / cerrar'] },
+      { id: 'rightUpperLeg', label: 'Muslo der.', range: 45, axes: ['adelante / atrás', 'girar', 'abrir / cerrar'] },
+    ] },
+  ];
+  function armBones(side, tag) {
+    return [
+      { id: side + 'Shoulder', label: 'Hombro ' + tag, range: 30, axes: ['adelante / atrás', 'girar', 'subir / bajar'] },
+      { id: side + 'UpperArm', label: 'Brazo ' + tag, range: 150, axes: ['adelante / atrás', 'girar el brazo', 'subir / bajar'] },
+      { id: side + 'LowerArm', label: 'Antebrazo ' + tag, range: 150, axes: ['girar', 'doblar el codo', 'abrir'] },
+      { id: side + 'Hand', label: 'Mano ' + tag, range: 70, axes: ['flexionar muñeca', 'girar', 'ladear'] },
+    ];
+  }
+  const BONE_BY_ID = {};
+  BONE_GROUPS.forEach((g) => g.bones.forEach((b) => { BONE_BY_ID[b.id] = b; }));
+  const MIRROR_PAIRS = [['leftShoulder', 'rightShoulder'], ['leftUpperArm', 'rightUpperArm'],
+    ['leftLowerArm', 'rightLowerArm'], ['leftHand', 'rightHand'], ['leftUpperLeg', 'rightUpperLeg']];
+
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const clampNum = (v, a, b) => Math.min(b, Math.max(a, v));
+  const round = (v, d = 2) => Math.round(v * 10 ** d) / 10 ** d;
+  const exprLabel = (name) => (EXPRESSIONS.find((e) => e[0] === name) || [name, name])[1];
+
+  // ---------------------------------------------------------------- estado
+  const state = {
+    pose: {},                 // hueso -> [x, y, z] en grados (valor de los deslizadores)
+    controlled: new Set(),    // huesos que ARIA obedece
+    available: null,          // { hueso: true/false } según el modelo cargado
+    anim: { loop: false, ease: 'smooth', fade: 0.35, speed: 1, keyframes: [] },
+    selectedKf: null,
+    playing: null,            // { start, last, fade, speed, loop }
+    expr: { name: 'neutral', intensity: 0.7 },
+  };
+  Object.keys(BONE_BY_ID).forEach((id) => { state.pose[id] = [0, 0, 0]; });
+
+  const channel = new BroadcastChannel(CHANNEL);
+  const post = (type, payload) => channel.postMessage({ type, payload, source: 'brain', ts: Date.now() });
+
+  // ------------------------------------------------------------ utilidades UI
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3800);
+  }
+
+  // -------------------------------------------------------------- huesos
+  function buildBones() {
+    const root = $('#bones');
+    for (const group of BONE_GROUPS) {
+      const details = document.createElement('details');
+      details.className = 'group';
+      details.open = Boolean(group.open);
+      const summary = document.createElement('summary');
+      summary.textContent = group.title;
+      details.appendChild(summary);
+      for (const def of group.bones) details.appendChild(buildBone(def));
+      root.appendChild(details);
+    }
+  }
+
+  function buildBone(def) {
+    const el = document.createElement('div');
+    el.className = 'bone';
+    el.dataset.id = def.id;
+    const head = document.createElement('div');
+    head.className = 'bone-head';
+    const label = document.createElement('label');
+    label.className = 'inline';
+    label.innerHTML = '<input type="checkbox" data-role="ctl"> <b></b>';
+    label.querySelector('b').textContent = def.label;
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'mini';
+    reset.dataset.role = 'reset';
+    reset.title = 'Volver este hueso a la pose de reposo';
+    reset.textContent = 'reposo';
+    head.append(label, reset);
+    el.appendChild(head);
+
+    for (let i = 0; i < 3; i++) {
+      const row = document.createElement('label');
+      row.className = 'axis';
+      const name = document.createElement('span');
+      name.className = 'axis-name';
+      name.textContent = 'XYZ'[i];
+      const hint = document.createElement('small');
+      hint.textContent = def.axes[i];
+      name.appendChild(hint);
+      const range = document.createElement('input');
+      range.type = 'range';
+      range.min = -def.range; range.max = def.range; range.step = 1; range.value = 0;
+      range.dataset.axis = i;
+      const num = document.createElement('input');
+      num.type = 'number';
+      num.min = -def.range; num.max = def.range; num.step = 1; num.value = 0;
+      num.dataset.axis = i;
+      row.append(name, range, num);
+      el.appendChild(row);
+    }
+    return el;
+  }
+
+  function refreshBone(id) {
+    const el = $(`.bone[data-id="${id}"]`);
+    if (!el) return;
+    const v = state.pose[id];
+    el.querySelectorAll('[data-axis]').forEach((inp) => { inp.value = v[Number(inp.dataset.axis)]; });
+    const on = state.controlled.has(id);
+    $('[data-role="ctl"]', el).checked = on;
+    el.classList.toggle('on', on);
+  }
+  const refreshAllBones = () => Object.keys(BONE_BY_ID).forEach(refreshBone);
+
+  function updateCounters() {
+    const n = state.controlled.size;
+    $('#ctlCount').textContent = `${n} hueso${n === 1 ? '' : 's'} controlado${n === 1 ? '' : 's'}`;
+  }
+
+  function applyAvailability() {
+    if (!state.available) return;
+    for (const id of Object.keys(BONE_BY_ID)) {
+      const el = $(`.bone[data-id="${id}"]`);
+      if (!el) continue;
+      const missing = state.available[id] === false;
+      el.classList.toggle('off', missing);
+      el.title = missing ? 'Este modelo no tiene este hueso' : '';
+      el.querySelectorAll('input, button').forEach((inp) => { inp.disabled = missing; });
+      if (missing) state.controlled.delete(id);
+    }
+    updateCounters();
+  }
+
+  // ---------------------------------------------------------- envío en vivo
+  let sendQueued = false;
+  function queueSend() {
+    if (sendQueued) return;
+    sendQueued = true;
+    requestAnimationFrame(() => { sendQueued = false; sendPose(); });
+  }
+  function currentPose() {
+    const out = {};
+    for (const id of state.controlled) out[id] = state.pose[id].slice();
+    return out;
+  }
+  function sendPose() {
+    if (state.playing) return;
+    const bones = currentPose();
+    post('POSE', Object.keys(bones).length ? { bones } : { release: true });
+  }
+
+  function sendExpression() {
+    post('EXPRESSION', { name: state.expr.name, intensity: state.expr.intensity });
+  }
+
+  // ------------------------------------------------------ eventos de huesos
+  function bindBones() {
+    const root = $('#bones');
+
+    root.addEventListener('input', (e) => {
+      const t = e.target;
+      const boneEl = t.closest('.bone');
+      if (!boneEl || t.dataset.axis === undefined) return;
+      const id = boneEl.dataset.id;
+      const axis = Number(t.dataset.axis);
+      const def = BONE_BY_ID[id];
+      const v = clampNum(Number(t.value) || 0, -def.range, def.range);
+      state.pose[id][axis] = v;
+      boneEl.querySelectorAll(`[data-axis="${axis}"]`).forEach((inp) => { if (inp !== t) inp.value = v; });
+      if (!state.controlled.has(id)) {
+        state.controlled.add(id);
+        $('[data-role="ctl"]', boneEl).checked = true;
+        boneEl.classList.add('on');
+      }
+      updateCounters();
+      queueSend();
+    });
+
+    root.addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.dataset.role !== 'ctl') return;
+      const id = t.closest('.bone').dataset.id;
+      if (t.checked) state.controlled.add(id); else state.controlled.delete(id);
+      t.closest('.bone').classList.toggle('on', t.checked);
+      updateCounters();
+      queueSend();
+    });
+
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-role="reset"]');
+      if (!btn) return;
+      const id = btn.closest('.bone').dataset.id;
+      state.pose[id] = [0, 0, 0];
+      refreshBone(id);
+      queueSend();
+    });
+
+    $('#btnAll').addEventListener('click', () => {
+      for (const id of Object.keys(BONE_BY_ID)) {
+        if (!state.available || state.available[id] !== false) state.controlled.add(id);
+      }
+      refreshAllBones(); updateCounters(); queueSend();
+    });
+    $('#btnNone').addEventListener('click', () => {
+      state.controlled.clear();
+      refreshAllBones(); updateCounters(); queueSend();
+    });
+    $('#btnZero').addEventListener('click', () => {
+      Object.keys(BONE_BY_ID).forEach((id) => { state.pose[id] = [0, 0, 0]; });
+      refreshAllBones(); queueSend();
+    });
+
+    const mirror = (fromLeft) => {
+      for (const [l, r] of MIRROR_PAIRS) {
+        const [src, dst] = fromLeft ? [l, r] : [r, l];
+        const v = state.pose[src];
+        state.pose[dst] = [v[0], -v[1] || 0, -v[2] || 0];
+        if (state.controlled.has(src)) state.controlled.add(dst); else state.controlled.delete(dst);
+      }
+      refreshAllBones(); updateCounters(); queueSend();
+    };
+    $('#btnMirrorLR').addEventListener('click', () => mirror(true));
+    $('#btnMirrorRL').addEventListener('click', () => mirror(false));
+  }
+
+  // ------------------------------------------------------------------ cara
+  function buildExpressions() {
+    const sel = $('#exprName');
+    for (const [id, label] of EXPRESSIONS) sel.add(new Option(label, id));
+    sel.addEventListener('change', () => {
+      state.expr.name = sel.value;
+      if ($('#exprLive').checked) sendExpression();
+    });
+    $('#exprInt').addEventListener('input', (e) => {
+      state.expr.intensity = Number(e.target.value);
+      $('#exprIntOut').textContent = state.expr.intensity.toFixed(2);
+      if ($('#exprLive').checked) sendExpression();
+    });
+  }
+
+  // ------------------------------------------------------------- animación
+  const lastT = () => state.anim.keyframes.reduce((m, k) => Math.max(m, k.t), 0);
+  const totalSpan = () => Math.max(2, lastT() + 0.5);
+
+  function captureKeyframe() {
+    const t = round(clampNum(Number($('#kfTime').value) || 0, 0, 600), 2);
+    const pose = currentPose();
+    const kf = { t, pose };
+    if ($('#kfExpr').checked) kf.expression = { name: state.expr.name, intensity: state.expr.intensity };
+    if (!Object.keys(pose).length && !kf.expression) {
+      toast('Tildá "controlar" en algún hueso (o incluí la cara) antes de capturar.');
+      return;
+    }
+    const list = state.anim.keyframes;
+    const same = list.findIndex((k) => Math.abs(k.t - t) < 0.01);
+    if (same >= 0) list[same] = kf; else list.push(kf);
+    list.sort((a, b) => a.t - b.t);
+    state.selectedKf = kf;
+    $('#kfTime').value = round(t + 1, 1);
+    renderKeyframes();
+  }
+
+  function viewKeyframe(kf) {
+    state.selectedKf = kf;
+    state.controlled = new Set(Object.keys(kf.pose).filter((id) => BONE_BY_ID[id]));
+    for (const id of Object.keys(BONE_BY_ID)) state.pose[id] = kf.pose[id] ? kf.pose[id].slice() : [0, 0, 0];
+    refreshAllBones(); updateCounters();
+    $('#kfTime').value = kf.t;
+    if (kf.expression) {
+      state.expr = { name: kf.expression.name, intensity: kf.expression.intensity };
+      $('#exprName').value = state.expr.name;
+      $('#exprInt').value = state.expr.intensity;
+      $('#exprIntOut').textContent = state.expr.intensity.toFixed(2);
+      sendExpression();
+    }
+    queueSend();
+    renderKeyframes();
+  }
+
+  function renderKeyframes() {
+    const list = $('#kfList');
+    list.textContent = '';
+    state.anim.keyframes.forEach((kf, i) => {
+      const row = document.createElement('div');
+      row.className = 'kf' + (kf === state.selectedKf ? ' sel' : '');
+      row.dataset.i = i;
+      const n = Object.keys(kf.pose).length;
+
+      const idx = document.createElement('span');
+      idx.className = 'kf-i'; idx.textContent = i + 1;
+
+      const tl = document.createElement('label');
+      tl.className = 'kf-t';
+      const tin = document.createElement('input');
+      tin.type = 'number'; tin.min = 0; tin.max = 600; tin.step = 0.1; tin.value = kf.t; tin.dataset.role = 't';
+      tl.append(tin, document.createTextNode(' s'));
+
+      const info = document.createElement('span');
+      info.className = 'kf-info';
+      info.textContent = `${n} hueso${n === 1 ? '' : 's'}` + (kf.expression ? ` · cara: ${exprLabel(kf.expression.name)}` : '');
+
+      const actions = document.createElement('span');
+      actions.className = 'kf-actions';
+      for (const [role, label, title] of [['view', 'Ver', 'Cargar esta pose en los controles'],
+        ['update', 'Actualizar', 'Reemplazar este keyframe con la pose actual'], ['del', 'Borrar', 'Borrar este keyframe']]) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.dataset.role = role; b.textContent = label; b.title = title;
+        if (role === 'del') b.className = 'danger';
+        actions.appendChild(b);
+      }
+      row.append(idx, tl, info, actions);
+      list.appendChild(row);
+    });
+    $('#kfEmpty').style.display = state.anim.keyframes.length ? 'none' : '';
+    renderTimeline();
+  }
+
+  function renderTimeline() {
+    const tl = $('#timeline');
+    tl.querySelectorAll('.marker').forEach((m) => m.remove());
+    const span = totalSpan();
+    state.anim.keyframes.forEach((kf, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'marker' + (kf === state.selectedKf ? ' sel' : '');
+      b.style.left = (kf.t / span * 100) + '%';
+      b.title = `#${i + 1} · ${kf.t} s`;
+      b.dataset.i = i;
+      tl.appendChild(b);
+    });
+    $('#tlEnd').textContent = round(span, 1) + ' s';
+  }
+
+  function bindAnimation() {
+    $('#btnCapture').addEventListener('click', captureKeyframe);
+
+    $('#kfList').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-role]');
+      if (!btn) return;
+      const idx = Number(btn.closest('.kf').dataset.i);
+      const kf = state.anim.keyframes[idx];
+      if (!kf) return;
+      if (btn.dataset.role === 'view') viewKeyframe(kf);
+      if (btn.dataset.role === 'update') {
+        kf.pose = currentPose();
+        if ($('#kfExpr').checked) kf.expression = { name: state.expr.name, intensity: state.expr.intensity };
+        state.selectedKf = kf;
+        renderKeyframes();
+        toast(`Keyframe ${idx + 1} actualizado.`);
+      }
+      if (btn.dataset.role === 'del') {
+        state.anim.keyframes.splice(idx, 1);
+        if (state.selectedKf === kf) state.selectedKf = null;
+        renderKeyframes();
+      }
+    });
+
+    $('#kfList').addEventListener('change', (e) => {
+      if (e.target.dataset.role !== 't') return;
+      const kf = state.anim.keyframes[Number(e.target.closest('.kf').dataset.i)];
+      if (!kf) return;
+      kf.t = round(clampNum(Number(e.target.value) || 0, 0, 600), 2);
+      state.anim.keyframes.sort((a, b) => a.t - b.t);
+      renderKeyframes();
+    });
+
+    $('#timeline').addEventListener('click', (e) => {
+      const marker = e.target.closest('.marker');
+      if (marker) { viewKeyframe(state.anim.keyframes[Number(marker.dataset.i)]); return; }
+      const rect = e.currentTarget.getBoundingClientRect();
+      $('#kfTime').value = round(clampNum((e.clientX - rect.left) / rect.width, 0, 1) * totalSpan(), 1);
+    });
+
+    $('#animLoop').addEventListener('change', (e) => { state.anim.loop = e.target.checked; });
+    $('#animEase').addEventListener('change', (e) => { state.anim.ease = e.target.value; });
+    $('#animSpeed').addEventListener('input', (e) => {
+      state.anim.speed = Number(e.target.value);
+      $('#animSpeedOut').textContent = state.anim.speed.toFixed(2) + '×';
+    });
+
+    $('#btnPlay').addEventListener('click', play);
+    $('#btnStop').addEventListener('click', stop);
+    $('#btnClear').addEventListener('click', () => {
+      if (!state.anim.keyframes.length) return;
+      if (!confirm('¿Vaciar todos los keyframes de la animación actual?')) return;
+      state.anim.keyframes = [];
+      state.selectedKf = null;
+      $('#kfTime').value = 0;
+      renderKeyframes();
+    });
+  }
+
+  function buildAnimation() {
+    const a = state.anim;
+    return {
+      name: $('#animName').value.trim().toLowerCase() || 'prueba',
+      loop: a.loop, ease: a.ease, fade: a.fade, speed: a.speed,
+      keyframes: JSON.parse(JSON.stringify(a.keyframes)),
+    };
+  }
+
+  function play() {
+    if (!state.anim.keyframes.length) { toast('Primero capturá al menos un keyframe.'); return; }
+    post('POSE', { release: true });
+    post('ANIMATION', { action: 'play', animation: buildAnimation() });
+    const a = state.anim;
+    state.playing = { start: performance.now(), last: lastT(), fade: a.fade, speed: a.speed, loop: a.loop };
+    $('#btnStop').disabled = false;
+    $('#playhead').style.display = 'block';
+  }
+
+  function stop() {
+    post('ANIMATION', { action: 'stop' });
+    finishPlaying();
+  }
+
+  function finishPlaying() {
+    if (!state.playing) return;
+    state.playing = null;
+    $('#btnStop').disabled = true;
+    $('#playhead').style.display = 'none';
+    if (state.controlled.size) queueSend(); // vuelve la pose que estabas editando
+  }
+
+  function tickPlayhead() {
+    const p = state.playing;
+    if (p) {
+      const elapsed = (performance.now() - p.start) / 1000;
+      let t = elapsed * p.speed - p.fade;
+      if (p.loop && t >= 0) t %= Math.max(p.last, 0.1);
+      if (!p.loop && t > p.last + p.fade + 0.3) finishPlaying();
+      else $('#playhead').style.left = (clampNum(t, 0, totalSpan()) / totalSpan() * 100) + '%';
+    }
+    requestAnimationFrame(tickPlayhead);
+  }
+
+  // ------------------------------------------------------------- biblioteca
+  const loadLibrary = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (_) { return {}; }
+  };
+  function saveLibrary(lib) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lib));
+    } catch (err) {
+      toast('No pude guardar en este navegador: ' + err.message);
+      return false;
+    }
+    post('ANIMATION', { action: 'reload' });
+    return true;
+  }
+
+  function validName(raw) {
+    const key = String(raw).trim().toLowerCase();
+    if (!/^[a-z0-9áéíóúüñ_-]{2,32}$/.test(key)) {
+      toast('El nombre necesita 2 a 32 letras, números, guiones o guion bajo (sin espacios).');
+      return null;
+    }
+    if (RESERVED.includes(key)) {
+      toast(`"${key}" ya lo usa un gesto del holograma. Elegí otro nombre.`);
+      return null;
+    }
+    return key;
+  }
+
+  function refreshLibrary(select) {
+    const lib = loadLibrary();
+    const keys = Object.keys(lib).sort();
+    const sel = $('#libSelect');
+    sel.textContent = '';
+    if (!keys.length) sel.add(new Option('(todavía no guardaste ninguna)', ''));
+    for (const k of keys) sel.add(new Option(`${k} · ${lib[k].keyframes?.length || 0} keyframes`, k));
+    if (select && keys.includes(select)) sel.value = select;
+    const empty = !keys.length;
+    $('#btnLoad').disabled = empty;
+    $('#btnDel').disabled = empty;
+  }
+
+  function sanitizePose(p) {
+    const out = {};
+    for (const [id, v] of Object.entries(p || {})) {
+      if (BONE_BY_ID[id] && Array.isArray(v) && v.length === 3 && v.every((n) => Number.isFinite(Number(n)))) {
+        const r = BONE_BY_ID[id].range;
+        out[id] = v.map((n) => clampNum(Number(n), -r * 2, r * 2));
+      }
+    }
+    return out;
+  }
+
+  function normalizeAnim(raw) {
+    if (!raw || !Array.isArray(raw.keyframes)) return null;
+    const keyframes = raw.keyframes
+      .filter((k) => k && Number.isFinite(Number(k.t)))
+      .slice(0, 200)
+      .map((k) => {
+        const kf = { t: round(clampNum(Number(k.t), 0, 600)), pose: sanitizePose(k.pose) };
+        if (k.expression && typeof k.expression.name === 'string') {
+          kf.expression = { name: k.expression.name, intensity: clampNum(Number(k.expression.intensity ?? 1), 0, 1) };
+        }
+        return kf;
+      })
+      .sort((a, b) => a.t - b.t);
+    return {
+      name: String(raw.name || ''), loop: Boolean(raw.loop), ease: raw.ease === 'linear' ? 'linear' : 'smooth',
+      fade: clampNum(Number(raw.fade ?? 0.35), 0.05, 2), speed: clampNum(Number(raw.speed ?? 1), 0.1, 4), keyframes,
+    };
+  }
+
+  function loadIntoEditor(raw) {
+    const a = normalizeAnim(raw);
+    if (!a || !a.keyframes.length) { toast('Ese archivo no tiene una animación válida.'); return false; }
+    state.anim = { loop: a.loop, ease: a.ease, fade: a.fade, speed: a.speed, keyframes: a.keyframes };
+    state.selectedKf = null;
+    $('#animName').value = a.name;
+    $('#animLoop').checked = a.loop;
+    $('#animEase').value = a.ease;
+    $('#animSpeed').value = a.speed;
+    $('#animSpeedOut').textContent = a.speed.toFixed(2) + '×';
+    $('#kfTime').value = round(lastT() + 1, 1);
+    renderKeyframes();
+    return true;
+  }
+
+  function bindLibrary() {
+    $('#btnSave').addEventListener('click', () => {
+      const key = validName($('#animName').value);
+      if (!key) return;
+      if (!state.anim.keyframes.length) { toast('No hay keyframes para guardar.'); return; }
+      const lib = loadLibrary();
+      const existed = key in lib;
+      lib[key] = { ...buildAnimation(), name: key };
+      if (!saveLibrary(lib)) return;
+      $('#animName').value = key;
+      refreshLibrary(key);
+      toast(existed ? `"${key}" actualizada.` : `"${key}" guardada. Ya la puede usar el cerebro.`);
+    });
+
+    $('#btnLoad').addEventListener('click', () => {
+      const key = $('#libSelect').value;
+      const lib = loadLibrary();
+      if (key && lib[key] && loadIntoEditor({ ...lib[key], name: key })) toast(`"${key}" abierta.`);
+    });
+
+    $('#btnDel').addEventListener('click', () => {
+      const key = $('#libSelect').value;
+      if (!key) return;
+      if (!confirm(`¿Borrar la animación "${key}"?`)) return;
+      const lib = loadLibrary();
+      delete lib[key];
+      saveLibrary(lib);
+      refreshLibrary();
+    });
+
+    $('#btnExport').addEventListener('click', () => {
+      if (!state.anim.keyframes.length) { toast('No hay keyframes para descargar.'); return; }
+      const anim = buildAnimation();
+      const blob = new Blob([JSON.stringify(anim, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (anim.name || 'animacion') + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    });
+
+    $('#btnImport').addEventListener('click', () => $('#fileImport').click());
+    $('#fileImport').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        if (Array.isArray(data.keyframes)) {
+          if (loadIntoEditor({ ...data, name: data.name || file.name.replace(/\.json$/i, '') })) toast('Animación abierta.');
+        } else {
+          // Una biblioteca completa: { nombre: animación, ... }
+          const lib = loadLibrary();
+          let added = 0;
+          for (const [name, raw] of Object.entries(data)) {
+            const key = String(name).trim().toLowerCase();
+            const a = normalizeAnim(raw);
+            if (a && a.keyframes.length && /^[a-z0-9áéíóúüñ_-]{2,32}$/.test(key) && !RESERVED.includes(key)) { lib[key] = { ...a, name: key }; added++; }
+          }
+          if (!added) { toast('Ese archivo no tiene animaciones válidas.'); return; }
+          if (saveLibrary(lib)) { refreshLibrary(); toast(`${added} animación(es) agregada(s) a tu biblioteca.`); }
+        }
+      } catch (err) {
+        toast('No pude leer ese archivo: ' + err.message);
+      }
+    });
+
+    $('#btnCopy').addEventListener('click', async () => {
+      const key = validName($('#animName').value || $('#libSelect').value);
+      if (!key) return;
+      const cmd = `new BroadcastChannel('aria-hologram').postMessage({ type: 'GESTURE', payload: { name: '${key}' }, source: 'brain', ts: Date.now() })`;
+      try {
+        await navigator.clipboard.writeText(cmd);
+        toast('Comando copiado. Pegalo en la consola (F12) de cualquier pestaña de 127.0.0.1:8765.');
+      } catch (_) {
+        window.prompt('Copiá este comando:', cmd);
+      }
+    });
+  }
+
+  // -------------------------------------------------- conexión con el holograma
+  let lastSeen = 0;
+  let linked = false;
+  let holoAnimations = 0;
+
+  function renderLink() {
+    const el = $('#link');
+    el.classList.toggle('on', linked);
+    $('#linkText').textContent = linked
+      ? `Holograma conectado · ${holoAnimations} animación(es) propia(s) cargada(s)`
+      : 'Esperando al holograma…';
+  }
+
+  channel.onmessage = (e) => {
+    const m = e.data;
+    if (!m || m.source !== 'hologram') return;
+    lastSeen = Date.now();
+    const p = m.payload || {};
+    if (m.type === 'HOLOGRAM_READY') {
+      state.available = (p.gestures && p.gestures.bones) || state.available;
+      applyAvailability();
+      queueSend();
+    }
+    if (m.type === 'HOLOGRAM_STATUS') {
+      if (p.bones) { const first = !state.available; state.available = p.bones; if (first) applyAvailability(); }
+      holoAnimations = Array.isArray(p.animations) ? p.animations.length : 0;
+      if (state.playing && p.animating === false && performance.now() - state.playing.start > 800) finishPlaying();
+    }
+    if (!linked) { linked = true; queueSend(); }
+    renderLink();
+  };
+
+  setInterval(() => {
+    const ok = Date.now() - lastSeen < 8000;
+    if (ok !== linked) { linked = ok; renderLink(); }
+  }, 1000);
+
+  // ------------------------------------------------------------------- inicio
+  buildBones();
+  bindBones();
+  buildExpressions();
+  bindAnimation();
+  bindLibrary();
+  refreshLibrary();
+  renderKeyframes();
+  updateCounters();
+  renderLink();
+  requestAnimationFrame(tickPlayhead);
+
+  window.__ariaEditor = { state, post }; // para depurar desde la consola
+})();
+</script>
+</body>
+</html>

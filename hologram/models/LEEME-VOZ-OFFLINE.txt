@@ -1,0 +1,47 @@
+ARIA · ESCUCHAR SIN INTERNET
+============================
+
+Por qué salía "necesita internet": Chrome manda tu voz a un servicio online de Google
+para convertirla en texto. Sin conexión, ese servicio falla.
+
+ARIA ahora elige sola, en este orden:
+  1) Vosk local (esta guía)      -> sin internet, funciona en cualquier navegador
+  2) Chrome en el dispositivo    -> sin internet, solo Chrome 139 o más nuevo
+  3) Servicio online de Chrome   -> necesita internet (lo de antes)
+
+Para el punto 1 hacen falta dos archivos. Se descargan una sola vez (esa vez sí con internet).
+
+PASO 1 · vosk.js  (desde la carpeta ARIA\hologram, en CMD)
+----------------------------------------------------------
+  mkdir vendor
+  npm pack vosk-browser
+  (anotá el nombre que imprime, por ejemplo vosk-browser-0.0.8.tgz)
+  tar -xf vosk-browser-0.0.8.tgz
+  copy package\dist\vosk.js vendor\vosk.js
+  rmdir /s /q package
+  del vosk-browser-0.0.8.tgz
+
+PASO 2 · modelo en español (unos 40 MB)
+---------------------------------------
+Guardá el archivo con este nombre exacto dentro de ARIA\hologram\models\ :
+  vosk-model-small-es-0.42.tar.gz
+
+Descarga (modelos de la demo de vosk-browser):
+  https://ccoreilly.github.io/vosk-browser/models/vosk-model-small-es-0.42.tar.gz
+
+Si ese enlace no funcionara: bajá vosk-model-small-es-0.42.zip desde
+https://alphacephei.com/vosk/models , descomprimilo y volvé a comprimir la carpeta
+resultante como .tar.gz (con "tar -czf vosk-model-small-es-0.42.tar.gz vosk-model-small-es-0.42").
+
+RESULTADO
+---------
+  ARIA\hologram\vendor\vosk.js
+  ARIA\hologram\models\vosk-model-small-es-0.42.tar.gz
+
+Recargá la página con Live Server, tocá "Escuchar: OFF" y permití el micrófono.
+La primera vez tarda unos segundos en cargar el modelo (verás "Cargando el reconocimiento...").
+
+NOTAS
+-----
+- El micrófono solo funciona desde http://127.0.0.1 / localhost o https (Live Server sirve).
+- Si no querés Vosk, poné offlineSTT.enabled en false en js/config.js.

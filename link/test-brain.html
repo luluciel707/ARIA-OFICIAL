@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARIA LINK · Simulador de cerebro (solo pruebas)</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 20px; max-width: 720px; background: #0b0814; color: #e4defc; font: 15px/1.45 "Segoe UI", system-ui, sans-serif; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p.note { margin: 0 0 18px; color: #a79fd0; }
+    fieldset { margin: 0 0 14px; padding: 10px 12px 12px; border: 1px solid #3a2f66; border-radius: 10px; }
+    legend { padding: 0 6px; color: #22e6ff; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    input[type="text"] { flex: 1 1 260px; min-width: 0; }
+    input, select, button { font: inherit; padding: 8px 10px; color: #e4defc; background: #17112b; border: 1px solid #3a2f66; border-radius: 8px; }
+    button { cursor: pointer; border-color: #9b6bff; }
+    button:hover { background: #241a45; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #22e6ff; outline-offset: 2px; }
+    pre { height: 180px; overflow: auto; margin: 0; padding: 10px; background: #000; border: 1px solid #3a2f66; border-radius: 10px; font-size: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Simulador de cerebro (solo pruebas)</h1>
+  <p class="note">
+    Envía al holograma exactamente lo que tú elijas aquí. No genera respuestas ni tiene inteligencia:
+    es solo para comprobar el protocolo. Mientras esta página esté abierta, el holograma mostrará CONECTADO.
+    Ábrela en el mismo origen que el holograma (mismo host y puerto).
+  </p>
+
+  <fieldset>
+    <legend>SAY</legend>
+    <div class="row">
+      <input id="say-text" type="text" value="Hola, soy ARIA." aria-label="Texto que dirá ARIA">
+      <button id="btn-say" type="button">Decir</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>EXPRESSION</legend>
+    <div class="row">
+      <select id="expr-name" aria-label="Expresión">
+        <option value="neutral">neutral</option>
+        <option value="happy">happy (feliz)</option>
+        <option value="sad">sad (triste)</option>
+        <option value="surprised">surprised (sorprendida)</option>
+        <option value="thinking">thinking (pensativa)</option>
+        <option value="confused">confused (confundida)</option>
+        <option value="angry">angry (enfadada)</option>
+      </select>
+      <label>Intensidad <input id="expr-int" type="range" min="0" max="1" step="0.1" value="1"></label>
+      <button id="btn-expr" type="button">Enviar</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>GESTURE</legend>
+    <div class="row">
+      <select id="gest-name" aria-label="Gesto">
+        <option value="wave">wave (saludo)</option>
+        <option value="nod">nod (asentir)</option>
+        <option value="shake">shake (negar)</option>
+        <option value="look">look (mirar)</option>
+      </select>
+      <select id="gest-dir" aria-label="Dirección de la mirada">
+        <option value="left">left</option>
+        <option value="right">right</option>
+        <option value="up">up</option>
+        <option value="down">down</option>
+        <option value="center">center</option>
+      </select>
+      <button id="btn-gest" type="button">Enviar</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>STATE</legend>
+    <div class="row">
+      <select id="state-name" aria-label="Estado">
+        <option>IDLE</option>
+        <option>LISTENING</option>
+        <option>THINKING</option>
+        <option>SPEAKING</option>
+        <option>HAPPY</option>
+        <option>ERROR</option>
+      </select>
+      <button id="btn-state" type="button">Enviar</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Mensajes recibidos del holograma</legend>
+    <pre id="log" aria-live="polite"></pre>
+  </fieldset>
+
+  <script src="aria-link.js"></script>
+  <script>
+    (function () {
+      var logEl = document.getElementById('log');
+      function log(text) {
+        var time = new Date().toLocaleTimeString();
+        logEl.textContent += '[' + time + '] ' + text + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      var link = AriaLink.connect({
+        onUserMessage: function (text) { log('USER_MESSAGE: ' + text); },
+        onHologramReady: function (status) { log('HOLOGRAM_READY (estado: ' + status.state + ', VRM cargado: ' + status.vrmLoaded + ')'); },
+        onHologramStatus: function (status) { /* llega cada pocos segundos; no se registra para no llenar el log */ },
+      });
+
+      function $(id) { return document.getElementById(id); }
+      $('btn-say').addEventListener('click', function () { link.say($('say-text').value); log('→ SAY'); });
+      $('btn-expr').addEventListener('click', function () {
+        link.expression($('expr-name').value, Number($('expr-int').value));
+        log('→ EXPRESSION ' + $('expr-name').value);
+      });
+      $('btn-gest').addEventListener('click', function () {
+        var name = $('gest-name').value;
+        link.gesture(name, name === 'look' ? $('gest-dir').value : undefined);
+        log('→ GESTURE ' + name);
+      });
+      $('btn-state').addEventListener('click', function () { link.state($('state-name').value); log('→ STATE ' + $('state-name').value); });
+
+      log('Simulador listo. Abre hologram/index.html en otra pestaña del mismo origen.');
+    })();
+  </script>
+</body>
+</html>
