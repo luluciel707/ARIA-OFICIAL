@@ -492,6 +492,13 @@ async function initializeARIA() {
         expressions = new ExpressionController(model.vrm);
         gestures = new GestureController(model.vrm);
 
+        // Datos del modelo en pantalla, para diagnosticar problemas de pose.
+        const armBones = gestures.getCapabilities().bones;
+        showMessage(
+            `Modelo VRM ${model.vrm.meta?.metaVersion ?? "?"} · brazos: ${armBones.leftUpperArm && armBones.rightUpperArm ? "ok" : "NO ENCONTRADOS"}`,
+            9000
+        );
+
         console.log("Expresiones:", expressions.getCapabilities());
         console.log("Gestos:", gestures.getCapabilities());
 
