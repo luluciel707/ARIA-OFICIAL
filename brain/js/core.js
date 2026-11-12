@@ -2,6 +2,7 @@ import { CONFIG } from "./config.js";
 import { ARIAMemory } from "./memory.js";
 import { ARIAConversation } from "./conversation.js";
 import { reason } from "./reasoning.js";
+import { handlePlannerMessage } from "./planner.js";
 import { runSkills, extractLookupQuery, wikiLookup } from "./skills.js";
 import { recognizeIntent } from "./intentions.js";
 import { searchKnowledge } from "./knowledge.js";
@@ -21,6 +22,7 @@ class ARIABrain {
         this.hologramConnected = false;
         this.localGatewayAvailable = false;
         this.ai = generativeEngine;
+        this.reminderTimer = null;
     }
 
     initialize() {
@@ -41,6 +43,8 @@ class ARIABrain {
         this.initialized = true;
         if (LOCAL_HOST) this.checkLocalGateway();
         if (this.ai.wasEnabled && this.ai.supported) this.ai.enable().catch(() => {});
+        this.checkDueReminders();
+        this.reminderTimer = window.setInterval(() => this.checkDueReminders(), 30000);
         console.log(`${CONFIG.name} BRAIN v${CONFIG.version} iniciado.`);
     }
 
@@ -57,13 +61,23 @@ class ARIABrain {
         }
     }
 
+    checkDueReminders() {
+        for (const task of this.memory.getDueReminders()) {
+            const text = `Recordatorio: ${task.title}${task.type === "appointment" ? " (cita)" : ""}.`;
+            this.announce(text);
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                try { new Notification("ARIA · Recordatorio", { body: task.title, tag: `aria-${task.id}` }); }
+                catch (error) { console.info("No se pudo mostrar la notificación del navegador:", error); }
+            }
+        }
+    }
+
     getRelevantContext(message) {
         const documents = this.memory.getDocuments();
         const documentMatches = searchRAG(message, documents, 3);
         const noteMatches = this.memory.findRelevantContext(message)
             .filter(item => item.source === "nota")
             .map(item => ({ title: item.title, content: item.content, source: item.source }));
-
         const seen = new Set();
         return [...documentMatches, ...noteMatches]
             .filter(item => {
@@ -85,7 +99,6 @@ class ARIABrain {
         const memories = this.memory.recall().slice(-8).map(note => note.content);
         const profile = this.memory.getProfile();
         const context = this.getRelevantContext(message);
-
         if (this.ai.ready) {
             try {
                 const answer = await this.ai.ask(message, history, memories, profile, context);
@@ -162,19 +175,17 @@ class ARIABrain {
         if (typeof message !== "string") return null;
         message = message.trim();
         if (!message) return null;
-
         this.conversation.add("user", message);
         this.setState("THINKING");
 
         try {
-            const skillResponse = await runSkills(message, {
+            let response = handlePlannerMessage(message, this.memory);
+            if (!response) response = await runSkills(message, {
                 sendToHologram: (type, payload) => this.sendToHologram(type, payload),
                 hologramConnected: this.hologramConnected,
                 ai: this.ai,
                 announce: text => this.announce(text)
             });
-
-            let response = skillResponse;
             if (!response) {
                 const deterministic = checkHealthSafety(message).urgent
                     || recognizeIntent(message) !== "unknown"
@@ -208,6 +219,7 @@ class ARIABrain {
             version: CONFIG.version,
             initialized: this.initialized,
             memoryEntries: this.memory.recall().length,
+            taskEntries: this.memory.getTasks().length,
             conversationMessages: this.conversation.length,
             hologramConnected: this.hologramConnected,
             localGatewayAvailable: this.localGatewayAvailable,
@@ -220,6 +232,8 @@ class ARIABrain {
             this.channel.close();
             this.channel = null;
         }
+        if (this.reminderTimer) window.clearInterval(this.reminderTimer);
+        this.reminderTimer = null;
         this.hologramConnected = false;
         this.initialized = false;
     }

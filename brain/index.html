@@ -10,15 +10,10 @@
 </head>
 
 <body>
-
     <main class="app">
-
         <header>
             <div class="logo">A</div>
-            <div>
-                <h1>ARIA</h1>
-                <p>PERSONAL AI SYSTEM</p>
-            </div>
+            <div><h1>ARIA</h1><p>PERSONAL AI SYSTEM</p></div>
             <span id="brainStatus" class="status">● INICIANDO</span>
         </header>
 
@@ -33,9 +28,9 @@
             <button id="aiButton" type="button">Activar IA generativa</button>
         </section>
 
-        <details class="profile-panel" id="profilePanel">
+        <details class="profile-panel">
             <summary>Mi perfil y preferencias</summary>
-            <p class="panel-help">Estos datos se guardan solo en este navegador. Completá lo que quieras; no hace falta compartir información sensible.</p>
+            <p class="panel-help">Se guarda solo en este navegador. Completá lo que quieras y evitá datos sensibles.</p>
             <div class="profile-grid">
                 <label>¿Cómo te llamo?
                     <input id="profilePreferredName" type="text" maxlength="50" placeholder="Tu nombre o apodo">
@@ -65,6 +60,12 @@
                 <label class="wide">Temas que te gustan
                     <input id="profileTopics" type="text" maxlength="300" placeholder="Ej.: música, cocina, historia">
                 </label>
+                <label class="wide">Temas que preferís evitar
+                    <input id="profileAvoidTopics" type="text" maxlength="300" placeholder="Ej.: noticias tristes, deportes">
+                </label>
+                <label class="wide">Gustos y hábitos que querés que tenga en cuenta
+                    <input id="profileHabits" type="text" maxlength="300" placeholder="Ej.: suelo leer por la noche, prefiero ejemplos prácticos">
+                </label>
             </div>
             <div class="profile-actions">
                 <button id="saveProfileButton" type="button">Guardar preferencias</button>
@@ -73,16 +74,27 @@
             </div>
         </details>
 
-        <section class="document-panel">
+        <details class="agenda-panel">
+            <summary>Agenda y pendientes</summary>
+            <p class="panel-help">También podés decir: «recordame llamar a Ana mañana a las 10», «tengo cita con el dentista el 20/12 a las 9» o «agrega tarea comprar pan urgente».</p>
+            <div class="agenda-actions">
+                <button id="notificationButton" class="secondary-button" type="button">Activar avisos del navegador</button>
+                <span id="notificationStatus" role="status" aria-live="polite">Los avisos funcionan mientras ARIA esté abierta.</span>
+            </div>
+            <ul id="taskList" class="task-list"></ul>
+        </details>
+
+        <details class="document-panel">
+            <summary>Notas y documentos para el contexto</summary>
             <label for="documentTitle">Título del documento</label>
             <input id="documentTitle" type="text" placeholder="Ej: Notas de trabajo, agenda, manual">
-            <label for="documentInput">Guardar texto para el contexto de ARIA</label>
-            <textarea id="documentInput" rows="4" placeholder="Pegá una nota, un documento, un resumen o datos que quieras que recuerde."></textarea>
+            <label for="documentInput">Texto que ARIA puede consultar</label>
+            <textarea id="documentInput" rows="3" placeholder="Pegá una nota, un resumen o información que quieras guardar."></textarea>
             <div class="doc-actions">
                 <button id="saveDocumentButton" type="button">Guardar documento</button>
                 <span id="ragStatus">Contexto activo: 0 documentos</span>
             </div>
-        </section>
+        </details>
 
         <section id="chat" class="chat" aria-live="polite">
             <div class="message aria">¡Estoy lista para conversar!</div>
@@ -92,13 +104,12 @@
             <input id="messageInput" type="text" placeholder="Escribime algo..." autocomplete="off" required>
             <button id="sendButton" type="submit">Enviar ✦</button>
         </form>
-
         <footer>ARIA BRAIN v0.1 · LOCAL SYSTEM</footer>
-
     </main>
 
     <script type="module">
         import { ariaBrain } from "./js/core.js";
+        import { formatPlannerDate } from "./js/planner.js";
 
         const chat = document.getElementById("chat");
         const form = document.getElementById("messageForm");
@@ -107,17 +118,19 @@
         const sendButton = document.getElementById("sendButton");
         const documentInput = document.getElementById("documentInput");
         const documentTitle = document.getElementById("documentTitle");
-        const saveDocumentButton = document.getElementById("saveDocumentButton");
         const ragStatus = document.getElementById("ragStatus");
+        const profileStatus = document.getElementById("profileStatus");
+        const notificationStatus = document.getElementById("notificationStatus");
 
         const profileFields = {
             preferredName: document.getElementById("profilePreferredName"),
             tone: document.getElementById("profileTone"),
             verbosity: document.getElementById("profileVerbosity"),
             humor: document.getElementById("profileHumor"),
-            topics: document.getElementById("profileTopics")
+            topics: document.getElementById("profileTopics"),
+            avoidTopics: document.getElementById("profileAvoidTopics"),
+            habits: document.getElementById("profileHabits")
         };
-        const profileStatus = document.getElementById("profileStatus");
 
         function addMessage(content, type) {
             const element = document.createElement("div");
@@ -125,6 +138,60 @@
             element.textContent = content;
             chat.appendChild(element);
             chat.scrollTop = chat.scrollHeight;
+        }
+
+        function renderTasks() {
+            const list = document.getElementById("taskList");
+            const tasks = ariaBrain.memory.getTasks();
+            list.replaceChildren();
+            if (!tasks.length) {
+                const empty = document.createElement("li");
+                empty.className = "task-empty";
+                empty.textContent = "Todavía no hay tareas ni recordatorios.";
+                list.appendChild(empty);
+                return;
+            }
+
+            for (const task of tasks) {
+                const item = document.createElement("li");
+                item.className = `task-item${task.completed ? " completed" : ""}`;
+                const details = document.createElement("div");
+                details.className = "task-details";
+                const title = document.createElement("strong");
+                title.textContent = `${task.priority ? "❗ " : ""}${task.title}`;
+                const meta = document.createElement("small");
+                const label = task.type === "appointment" ? "Cita" : task.type === "reminder" ? "Recordatorio" : "Tarea";
+                meta.textContent = `${label} · ${formatPlannerDate(task.dueAt)}${task.completed ? " · Completada" : ""}`;
+                details.append(title, meta);
+                const actions = document.createElement("div");
+                actions.className = "task-buttons";
+
+                if (!task.completed) {
+                    const done = document.createElement("button");
+                    done.type = "button";
+                    done.className = "secondary-button";
+                    done.textContent = "Hecha";
+                    done.setAttribute("aria-label", `Marcar como completada: ${task.title}`);
+                    done.addEventListener("click", () => {
+                        ariaBrain.memory.updateTask(task.id, { completed: true });
+                        renderTasks();
+                    });
+                    actions.appendChild(done);
+                }
+
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "secondary-button";
+                remove.textContent = "Borrar";
+                remove.setAttribute("aria-label", `Borrar: ${task.title}`);
+                remove.addEventListener("click", () => {
+                    ariaBrain.memory.removeTask(task.id);
+                    renderTasks();
+                });
+                actions.appendChild(remove);
+                item.append(details, actions);
+                list.appendChild(item);
+            }
         }
 
         function updateRAGStatus() {
@@ -139,19 +206,28 @@
             profileFields.verbosity.value = profile.verbosity;
             profileFields.humor.value = profile.humor;
             profileFields.topics.value = profile.favoriteTopics.join(", ");
+            profileFields.avoidTopics.value = profile.aversionTopics.join(", ");
+            profileFields.habits.value = profile.habits.join(", ");
+        }
+
+        function updateStatus() {
+            status.textContent = ariaBrain.initialized ? "● BRAIN ACTIVO" : "● ERROR";
         }
 
         document.getElementById("saveProfileButton").addEventListener("click", () => {
             const preferredName = profileFields.preferredName.value.trim();
+            const splitList = value => value.split(",").map(item => item.trim()).filter(Boolean);
             const saved = ariaBrain.memory.updateProfile({
                 name: preferredName,
                 preferredName: preferredName || "amiga",
                 tone: profileFields.tone.value,
                 verbosity: profileFields.verbosity.value,
                 humor: profileFields.humor.value,
-                favoriteTopics: profileFields.topics.value.split(",").map(topic => topic.trim()).filter(Boolean)
+                favoriteTopics: splitList(profileFields.topics.value),
+                aversionTopics: splitList(profileFields.avoidTopics.value),
+                habits: splitList(profileFields.habits.value)
             });
-            profileStatus.textContent = saved ? "Guardado en este navegador." : "No se pudo guardar. Revisá el almacenamiento del navegador.";
+            profileStatus.textContent = saved ? "Guardado en este navegador." : "No se pudo guardar. Revisá el almacenamiento.";
         });
 
         document.getElementById("resetProfileButton").addEventListener("click", () => {
@@ -160,19 +236,30 @@
             profileStatus.textContent = "Perfil borrado.";
         });
 
-        function updateStatus() {
-            status.textContent = ariaBrain.initialized ? "● BRAIN ACTIVO" : "● ERROR";
-        }
+        document.getElementById("notificationButton").addEventListener("click", async () => {
+            if (!("Notification" in window)) {
+                notificationStatus.textContent = "Este navegador no admite notificaciones.";
+                return;
+            }
+            try {
+                const permission = await Notification.requestPermission();
+                notificationStatus.textContent = permission === "granted"
+                    ? "Avisos activados. ARIA debe permanecer abierta para avisarte."
+                    : "No se concedió permiso. Verás los recordatorios dentro de ARIA mientras esté abierta.";
+            } catch (_) {
+                notificationStatus.textContent = "No pude solicitar permiso para avisos.";
+            }
+        });
 
         updateStatus();
-        updateRAGStatus();
+        renderTasks();
         renderProfile();
+        updateRAGStatus();
 
-        form.addEventListener("submit", async (event) => {
+        form.addEventListener("submit", async event => {
             event.preventDefault();
             const message = input.value.trim();
             if (!message) return;
-
             addMessage(message, "user");
             input.value = "";
             input.disabled = true;
@@ -180,6 +267,7 @@
             try {
                 const response = await ariaBrain.processMessage(message);
                 if (response) addMessage(response, "aria");
+                renderTasks();
             } catch (error) {
                 console.error("Error en el chat:", error);
                 addMessage("Tuve un problema al procesar ese mensaje.", "aria");
@@ -190,15 +278,14 @@
             }
         });
 
-        saveDocumentButton.addEventListener("click", () => {
+        document.getElementById("saveDocumentButton").addEventListener("click", () => {
             const title = documentTitle.value.trim();
             const content = documentInput.value.trim();
             if (!content) {
                 addMessage("Para guardar un documento, escribí algo antes.", "aria");
                 return;
             }
-            const saved = ariaBrain.memory.addDocument(title || "Documento", content);
-            if (!saved) {
+            if (!ariaBrain.memory.addDocument(title || "Documento", content)) {
                 addMessage("No pude guardar el documento; quizá el almacenamiento del navegador está lleno.", "aria");
                 return;
             }
@@ -212,7 +299,6 @@
         const aiProgress = document.getElementById("aiProgress");
         const aiButton = document.getElementById("aiButton");
         const ai = ariaBrain.ai;
-
         function renderAI() {
             const busy = ai.state === "loading";
             aiStatus.textContent = "IA generativa: " + (ai.state === "ready" ? "activa" : ai.text.toLowerCase());
@@ -222,7 +308,6 @@
             aiButton.textContent = ai.state === "ready" ? "Apagar IA generativa" : "Activar IA generativa";
             if (!ai.supported) aiStatus.textContent = "IA generativa: tu navegador no tiene WebGPU";
         }
-
         ai.addEventListener("status", renderAI);
         renderAI();
         aiButton.addEventListener("click", () => {
@@ -231,9 +316,11 @@
                 .catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
         });
 
-        window.addEventListener("aria:response", (event) => addMessage(event.detail, "aria"));
-        window.ariaChat = { refresh: updateStatus, addMessage, updateRAGStatus };
+        window.addEventListener("aria:response", event => {
+            addMessage(event.detail, "aria");
+            renderTasks();
+        });
+        window.ariaChat = { refresh: updateStatus, addMessage, updateRAGStatus, renderTasks };
     </script>
-
 </body>
 </html>

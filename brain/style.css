@@ -1,6 +1,7 @@
 /* User profile */
 .profile-panel,
-.document-panel {
+.document-panel,
+.agenda-panel {
     margin-top: 12px;
     padding: 14px;
     border: 1px solid var(--border);
@@ -8,7 +9,9 @@
     background: #0b0e1c;
 }
 
-.profile-panel summary {
+.profile-panel summary,
+.agenda-panel summary,
+.document-panel summary {
     cursor: pointer;
     color: var(--text);
     font-weight: 600;
@@ -54,12 +57,11 @@
     font: inherit;
 }
 
-.profile-grid select {
-    min-height: 42px;
-}
+.profile-grid select { min-height: 42px; }
 
 .profile-actions,
-.doc-actions {
+.doc-actions,
+.agenda-actions {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -68,13 +70,16 @@
 }
 
 .profile-actions button,
-.doc-actions button {
+.doc-actions button,
+.agenda-actions button,
+.task-buttons button {
     padding: 9px 13px;
     font-size: 12px;
 }
 
 .profile-actions span,
-.doc-actions span {
+.doc-actions span,
+.agenda-actions span {
     color: var(--muted);
     font-size: 12px;
 }
@@ -85,21 +90,39 @@
     border: 1px solid var(--border);
 }
 
-.document-panel {
+.document-panel { display: grid; gap: 8px; }
+.document-panel textarea { resize: vertical; }
+
+.task-list {
     display: grid;
     gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
 }
 
-.document-panel textarea {
-    resize: vertical;
+.task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #101326;
 }
+
+.task-item.completed { opacity: .65; }
+.task-item.completed strong { text-decoration: line-through; }
+.task-details { display: grid; gap: 4px; min-width: 0; }
+.task-details strong { overflow-wrap: anywhere; }
+.task-details small,
+.task-empty { color: var(--muted); font-size: 12px; }
+.task-buttons { display: flex; flex-shrink: 0; gap: 6px; }
 
 @media (max-width: 520px) {
-    .profile-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .profile-grid .wide {
-        grid-column: auto;
-    }
+    .profile-grid { grid-template-columns: 1fr; }
+    .profile-grid .wide { grid-column: auto; }
+    .task-item { align-items: flex-start; }
+    .task-buttons { flex-direction: column; }
 }
