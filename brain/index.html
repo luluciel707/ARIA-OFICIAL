@@ -1,15 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <meta name="theme-color" content="#07111f">
-
     <title>ARIA BRAIN</title>
-
     <link rel="stylesheet" href="./style.css">
 </head>
 
@@ -43,6 +39,19 @@
             <span id="aiStatus">IA generativa: apagada</span>
             <progress id="aiProgress" max="1" value="0" hidden></progress>
             <button id="aiButton" type="button">Activar IA generativa</button>
+        </section>
+
+        <section class="document-panel">
+            <label for="documentTitle">Título del documento</label>
+            <input id="documentTitle" type="text" placeholder="Ej: Notas de trabajo, agenda, manual" />
+
+            <label for="documentInput">Guardar texto para el contexto de ARIA</label>
+            <textarea id="documentInput" rows="4" placeholder="Pegá una nota, un documento, un resumen o datos que quieras que recuerde."></textarea>
+
+            <div class="doc-actions">
+                <button id="saveDocumentButton" type="button">Guardar documento</button>
+                <span id="ragStatus">Contexto activo: 0 documentos</span>
+            </div>
         </section>
 
         <section id="chat" class="chat" aria-live="polite">
@@ -84,76 +93,75 @@
         const input = document.getElementById("messageInput");
         const status = document.getElementById("brainStatus");
         const sendButton = document.getElementById("sendButton");
+        const documentInput = document.getElementById("documentInput");
+        const documentTitle = document.getElementById("documentTitle");
+        const saveDocumentButton = document.getElementById("saveDocumentButton");
+        const ragStatus = document.getElementById("ragStatus");
 
         function addMessage(content, type) {
-
             const element = document.createElement("div");
-
             element.className = `message ${type}`;
             element.textContent = content;
-
             chat.appendChild(element);
-
             chat.scrollTop = chat.scrollHeight;
         }
 
-        // Estado del cerebro.
-        function updateStatus() {
+        function updateRAGStatus() {
+            const count = ariaBrain.memory.getDocuments().length;
+            ragStatus.textContent = count
+                ? `Contexto activo: ${count} documento${count > 1 ? "s" : ""}`
+                : "Contexto activo: 0 documentos";
+        }
 
+        function updateStatus() {
             if (!ariaBrain.initialized) {
                 status.textContent = "● ERROR";
                 return;
             }
-
             status.textContent = "● BRAIN ACTIVO";
         }
 
         updateStatus();
+        updateRAGStatus();
 
-        // Enviar mensajes.
         form.addEventListener("submit", async (event) => {
-
             event.preventDefault();
-
             const message = input.value.trim();
-
             if (!message) return;
 
             addMessage(message, "user");
-
             input.value = "";
             input.disabled = true;
             sendButton.disabled = true;
 
             try {
-
-                const response =
-                    await ariaBrain.processMessage(message);
-
-                if (response) {
-                    addMessage(response, "aria");
-                }
-
+                const response = await ariaBrain.processMessage(message);
+                if (response) addMessage(response, "aria");
             } catch (error) {
-
                 console.error("Error en el chat:", error);
-
-                addMessage(
-                    "Tuve un problema al procesar ese mensaje.",
-                    "aria"
-                );
-
+                addMessage("Tuve un problema al procesar ese mensaje.", "aria");
             } finally {
-
                 input.disabled = false;
                 sendButton.disabled = false;
                 input.focus();
-
             }
-
         });
 
-        // IA generativa del navegador: estado y botón.
+        saveDocumentButton.addEventListener("click", () => {
+            const title = documentTitle.value.trim();
+            const content = documentInput.value.trim();
+            if (!content) {
+                addMessage("Para guardar un documento, escribí algo antes.", "aria");
+                return;
+            }
+
+            ariaBrain.memory.addDocument(title || "Documento", content);
+            documentTitle.value = "";
+            documentInput.value = "";
+            updateRAGStatus();
+            addMessage("Guardé ese texto en el contexto de ARIA para futuras respuestas.", "aria");
+        });
+
         const aiStatus = document.getElementById("aiStatus");
         const aiProgress = document.getElementById("aiProgress");
         const aiButton = document.getElementById("aiButton");
@@ -179,13 +187,12 @@
             }).catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
         });
 
-        // Respuestas que no nacen del chat (por voz o avisos del sistema).
         window.addEventListener("aria:response", (event) => addMessage(event.detail, "aria"));
 
-        // Exponer una pequeña función de diagnóstico.
         window.ariaChat = {
             refresh: updateStatus,
-            addMessage
+            addMessage,
+            updateRAGStatus
         };
 
     </script>

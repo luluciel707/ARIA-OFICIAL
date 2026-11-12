@@ -1,6 +1,7 @@
 import { checkHealthSafety } from "./safety.js";
 import { recognizeIntent } from "./intentions.js";
 import { searchKnowledge } from "./knowledge.js";
+import { searchRAG } from "./rag.js";
 
 const responses = {
     greeting: [
@@ -13,7 +14,7 @@ const responses = {
         "Todo tranquilo por acá. ¿Cómo va tu día?"
     ],
     identity: [
-        "Soy ARIA, tu asistente personal. Puedo hablar, ayudar en lo que haga falta, guardar notas y acompañarte con chistes y juegos cuando te apetece."
+        "Soy ARIA, tu asistente personal. Puedo hablar, ayudarte con ideas y tareas, y también jugar o contar chistes."
     ],
     help: [
         "Puedo charlar, explicarte cosas, ayudarte a pensar, guardar tus notas y jugar un ratito si te gusta. Si querés, también puedo adaptarme al tono que prefieras."
@@ -137,7 +138,7 @@ export function reason(message, memory) {
             const changes = parseModeFromMessage(message);
             if (!changes) return "¿Qué modo querés? Puedo ser breve, detallada, más seria o más divertida.";
             memory.updateProfile(changes);
-            const modeText = changes.verbosity || changes.humor === "nulo" ? (changes.verbosity === "breve" ? "más breve" : "más detallada") : "más divertida";
+            const modeText = changes.verbosity === "breve" ? "más breve" : changes.verbosity === "detallado" ? "más detallada" : (changes.humor === "nulo" ? "más seria" : "más divertida");
             return `Listo, voy a responder ${modeText}.`;
         }
 
@@ -189,14 +190,15 @@ export function reason(message, memory) {
         }
 
         default: {
-            const relevant = memory.findRelevantContext(message);
-            const knowledge = searchKnowledge(message);
+            const documents = memory.getDocuments ? memory.getDocuments() : [];
+            const rag = searchRAG(message, documents, 2);
 
-            if (relevant.length) {
-                const context = relevant[0];
-                return `Me acordé de esto que podría ayudar: ${context.content}. Si querés, te lo desarrollo más o te ayudo a encontrar una idea mejor.`;
+            if (rag.length) {
+                const match = rag[0];
+                return `Según lo que guardaste en tus documentos, ${match.title || "documento"} dice: "${match.content}". Si querés, te lo desarrollo más o lo adaptamos a tu estilo.`;
             }
 
+            const knowledge = searchKnowledge(message);
             if (knowledge.found) {
                 return knowledge.answer;
             }
