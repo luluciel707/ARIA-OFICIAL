@@ -2,9 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#000000">
-  <title>ARIA · Proyección</title>
+  <meta name="screen-orientation" content="landscape">
+  <title>ARIA · Proyección horizontal</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="css/hologram.css">
   <script type="importmap">
@@ -17,14 +18,13 @@
   }
   </script>
 </head>
-<body class="clean" data-state="idle">
-  <!-- Pantalla de proyección: solo el avatar; fondo negro para Pepper's Ghost. -->
-  <canvas id="hologram-canvas" aria-label="Proyección de ARIA"></canvas>
+<body class="clean" data-state="idle" data-orientation="landscape">
+  <!-- Pantalla Pepper's Ghost: negro absoluto; solo avatar y sus animaciones. -->
+  <canvas id="hologram-canvas" aria-label="Proyección horizontal de ARIA"></canvas>
 
-  <!-- Interfaz de diagnóstico/voz, oculta en modo limpio. Activar con ?ui=1. -->
+  <!-- Interfaz de diagnóstico/voz, oculta en proyección; se habilita con ?ui=1. -->
   <div id="hud-connection" class="hud" data-status="disconnected" aria-live="polite">
-    <span class="dot"></span>
-    <span id="connection-text">DESCONECTADO</span>
+    <span class="dot"></span><span id="connection-text">DESCONECTADO</span>
   </div>
   <div id="hud-state" class="hud"><span id="state-text">IDLE</span></div>
   <div id="hud-message" class="hud" hidden></div>
@@ -32,14 +32,16 @@
     <button id="btn-listen" type="button" aria-pressed="false">Escuchar: OFF</button>
     <button id="btn-fullscreen" type="button">Pantalla completa</button>
   </div>
-
   <noscript>ARIA necesita JavaScript para mostrar el avatar.</noscript>
-
   <script>
-    // La proyección queda limpia por defecto. ?ui=1 muestra controles/diagnóstico.
-    if (new URLSearchParams(location.search).get("ui") === "1") {
-      document.body.classList.remove("clean");
-    }
+    // La proyección está limpia por defecto. ?ui=1 muestra controles/diagnóstico.
+    if (new URLSearchParams(location.search).get("ui") === "1") document.body.classList.remove("clean");
+    const updateOrientation = () => {
+      document.body.dataset.orientation = window.innerWidth >= window.innerHeight ? "landscape" : "portrait";
+    };
+    updateOrientation();
+    window.addEventListener("resize", updateOrientation, { passive: true });
+    window.screen?.orientation?.addEventListener?.("change", updateOrientation);
   </script>
   <script type="module" src="js/main.js"></script>
 </body>

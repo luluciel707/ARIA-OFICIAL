@@ -1,6 +1,6 @@
 // ARIA HOLOGRAM · avatar.js
 // Escena 3D minimalista para Pepper's Ghost: renderiza el VRM y sus animaciones,
-// sin partículas ni aro decorativo. El archivo aria.vrm no se modifica.
+// sin partículas ni aro decorativo. El encuadre usa siempre un viewport horizontal.
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -31,7 +31,9 @@ export class AvatarScene {
     this._setupLights();
     this._bindPointer();
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', () => this.resize(), { passive: true });
+    window.screen?.orientation?.addEventListener?.('change', () => this.resize());
+    window.visualViewport?.addEventListener?.('resize', () => this.resize(), { passive: true });
   }
 
   _setupLights() {
@@ -120,8 +122,10 @@ export class AvatarScene {
     const h = this.height;
     const vFov = THREE.MathUtils.degToRad(this.camera.fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * this.camera.aspect);
-    const distForHeight = (h * CONFIG.camera.margin) / 2 / Math.tan(vFov / 2);
-    const distForWidth = (h * CONFIG.camera.assumedWidthRatio * CONFIG.camera.margin) / 2 / Math.tan(hFov / 2);
+    // Margen compacto en horizontal para que ARIA se vea grande sin cortar manos/pies.
+    const aspectMargin = this.camera.aspect >= 1.25 ? 1.04 : CONFIG.camera.margin;
+    const distForHeight = (h * aspectMargin) / 2 / Math.tan(vFov / 2);
+    const distForWidth = (h * CONFIG.camera.assumedWidthRatio * aspectMargin) / 2 / Math.tan(hFov / 2);
     const dist = Math.max(distForHeight, distForWidth);
     this.camera.position.set(0, h / 2, dist);
     this.camera.lookAt(0, h / 2, 0);
@@ -131,11 +135,16 @@ export class AvatarScene {
   }
 
   resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const visualWidth = window.visualViewport?.width || window.innerWidth;
+    const visualHeight = window.visualViewport?.height || window.innerHeight;
+    const portrait = visualWidth < visualHeight;
+    const width = portrait ? visualHeight : visualWidth;
+    const height = portrait ? visualWidth : visualHeight;
+
+    document.body.dataset.orientation = portrait ? 'portrait' : 'landscape';
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.maxPixelRatio));
-    this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
     this.fitCamera();
   }
 

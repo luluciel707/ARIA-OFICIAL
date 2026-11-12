@@ -1,5 +1,5 @@
-/* ARIA HOLOGRAM · Pepper's Ghost projection.
-   Negro puro para que el fondo no se refleje; solo se renderiza el avatar VRM. */
+/* ARIA HOLOGRAM · landscape tablet / Pepper's Ghost projection.
+   Fondo negro puro y sin elementos de interfaz en modo clean. */
 
 :root {
   --violet: #9b6bff;
@@ -7,18 +7,23 @@
   --ok: #35f0a0;
   --bad: #ff4d6d;
   --accent: var(--violet);
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 
 html, body {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   background: #000;
   color: #d9d4ff;
   overflow: hidden;
   overscroll-behavior: none;
+  touch-action: none;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   -webkit-user-select: none;
   user-select: none;
@@ -36,18 +41,31 @@ body[data-state="error"]     { --accent: var(--bad); }
   position: fixed;
   inset: 0;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
   height: 100dvh;
   display: block;
   background: #000;
   touch-action: none;
-  cursor: grab;
+  cursor: none;
 }
-#hologram-canvas:active { cursor: grabbing; }
 
-/* Espejo según la orientación de la pirámide. */
-body[data-mirror="x"] #hologram-canvas { transform: scaleX(-1); }
-body[data-mirror="y"] #hologram-canvas { transform: scaleY(-1); }
+/* Orientación horizontal. En portrait el canvas se gira como una pantalla apaisada;
+   el renderer también recibe dimensiones landscape para conservar el encuadre. */
+body[data-orientation="portrait"] #hologram-canvas {
+  width: 100dvh;
+  height: 100dvw;
+  left: 50%;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center;
+}
+
+/* Espejo para la pirámide. */
+body[data-mirror="x"] #hologram-canvas { scale: -1 1; }
+body[data-mirror="y"] #hologram-canvas { scale: 1 -1; }
 
 .hud {
   position: fixed;
@@ -55,43 +73,58 @@ body[data-mirror="y"] #hologram-canvas { transform: scaleY(-1); }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
-  font-size: 12px;
-  letter-spacing: 0.14em;
+  padding: 8px 14px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
   color: #d9d4ff;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.88);
   border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 999px;
 }
 
-#hud-connection { top: 12px; left: 12px; }
+#hud-connection { top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left)); }
 #hud-connection .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
 #hud-connection[data-status="connected"] .dot { background: var(--ok); }
-#hud-state { top: 12px; right: 12px; color: var(--accent); }
+#hud-state { top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); color: var(--accent); }
 #hud-message {
-  left: 50%; bottom: 76px; transform: translateX(-50%);
-  max-width: min(90vw, 560px); text-align: center; letter-spacing: 0.02em;
-  border-radius: 14px; line-height: 1.35;
+  left: 50%; bottom: max(82px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(80vw, 760px);
+  text-align: center;
+  letter-spacing: 0.02em;
+  border-radius: 14px;
+  line-height: 1.4;
+  font-size: clamp(14px, 1.8vw, 20px);
 }
 #hud-message[data-level="warn"] { border-color: #ffd86b; }
 #hud-message[data-level="error"] { border-color: var(--bad); color: #ffc2cc; }
 
-#controls { left: 50%; bottom: 16px; transform: translateX(-50%); padding: 6px; }
+#controls { left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 6px; }
 #controls button {
-  min-height: 40px; padding: 0 16px; font: inherit; letter-spacing: 0.06em;
-  color: #d9d4ff; background: transparent; border: 1px solid transparent;
-  border-radius: 999px; cursor: pointer;
+  min-height: 48px;
+  padding: 0 20px;
+  font: inherit;
+  letter-spacing: 0.05em;
+  color: #d9d4ff;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 #controls button:hover:not(:disabled) { border-color: var(--cyan); }
 #controls button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 #controls button[aria-pressed="true"] { color: var(--cyan); border-color: var(--cyan); }
 #controls button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Modo de proyección: nada salvo el canvas/avatar. */
+/* Pantalla de proyección: canvas/avatar únicamente. */
 body.clean .hud,
 body.clean noscript,
 body.clean #hud-error { display: none !important; }
-body.clean #hologram-canvas { cursor: none; pointer-events: none; }
+
+@media (orientation: landscape) and (min-width: 700px) {
+  #hologram-canvas { width: 100dvw; height: 100dvh; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
