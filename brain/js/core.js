@@ -1,4 +1,3 @@
-
 import { CONFIG } from "./config.js";
 import { ARIAMemory } from "./memory.js";
 import { ARIAConversation } from "./conversation.js";
@@ -6,6 +5,7 @@ import { reason } from "./reasoning.js";
 import { runSkills, extractLookupQuery, wikiLookup } from "./skills.js";
 import { recognizeIntent } from "./intentions.js";
 import { searchKnowledge } from "./knowledge.js";
+import { searchRAG } from "./rag.js";
 import { checkHealthSafety } from "./safety.js";
 import { generativeEngine } from "./webllm.js";
 
@@ -57,20 +57,44 @@ class ARIABrain {
         }
     }
 
+    getRelevantContext(message) {
+        const documents = this.memory.getDocuments();
+        const documentMatches = searchRAG(message, documents, 3);
+        const noteMatches = this.memory.findRelevantContext(message)
+            .filter(item => item.source === "nota")
+            .map(item => ({ title: item.title, content: item.content, source: item.source }));
+
+        const seen = new Set();
+        return [...documentMatches, ...noteMatches]
+            .filter(item => {
+                const key = `${item.title}|${item.content}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            })
+            .slice(0, 3)
+            .map(item => ({
+                title: String(item.title || "Nota personal").slice(0, 100),
+                source: item.source || "documento",
+                content: String(item.content || "").slice(0, 700)
+            }));
+    }
+
     async askGenerative(message) {
         const history = this.conversation.getRecentMessages(8).slice(0, -1);
-        const memories = this.memory.recall().slice(-12).map(note => note.content);
+        const memories = this.memory.recall().slice(-8).map(note => note.content);
         const profile = this.memory.getProfile();
+        const context = this.getRelevantContext(message);
 
         if (this.ai.ready) {
             try {
-                const answer = await this.ai.ask(message, history, memories, profile);
+                const answer = await this.ai.ask(message, history, memories, profile, context);
                 if (answer) return answer;
             } catch (error) {
                 console.warn("ARIA: falló la IA del navegador.", error.message);
             }
         }
-        return this.askLocalModel(message, profile);
+        return this.askLocalModel(message, profile, context);
     }
 
     announce(text) {
@@ -79,7 +103,7 @@ class ARIABrain {
         window.dispatchEvent(new CustomEvent("aria:response", { detail: text }));
     }
 
-    async askLocalModel(message, profile = this.memory.getProfile()) {
+    async askLocalModel(message, profile = this.memory.getProfile(), context = this.getRelevantContext(message)) {
         if (!LOCAL_HOST) return null;
         try {
             const response = await fetch("/api/chat", {
@@ -88,8 +112,9 @@ class ARIABrain {
                 body: JSON.stringify({
                     message,
                     history: this.conversation.getRecentMessages(8).slice(0, -1),
-                    memories: this.memory.recall().slice(-12).map(note => note.content),
-                    profile
+                    memories: this.memory.recall().slice(-8).map(note => note.content),
+                    profile,
+                    context
                 })
             });
             if (!response.ok) return null;
