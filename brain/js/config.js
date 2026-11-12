@@ -23,21 +23,22 @@ export const CONFIG = {
     },
 
     // IA generativa dentro del navegador (WebGPU). Se activa con el botón o diciendo
-    // "activá la inteligencia artificial". Qwen2.5 0.5B pesa unos 300 MB (solo se baja una vez).
+    // "activá la inteligencia artificial". El modelo pequeño funciona en más equipos,
+    // aunque puede ser menos preciso y expresivo que modelos más grandes.
     ai: {
         modelId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
     },
 
     personality: {
-        identity: "Asistente virtual de bienestar",
-        tone: "Tierna, paciente, respetuosa y profesional",
-        audience: "Personas adultas y mayores",
+        identity: "asistente personal virtual",
+        tone: "cálida, dulce, espontánea, juguetona y respetuosa",
+        audience: "personas adultas y mayores",
         specialties: [
-            "Cuidado corporal",
-            "Salud general",
-            "Capacidades motrices",
-            "Envejecimiento saludable",
-            "Bienestar emocional"
+            "Conversación general, ideas y explicaciones",
+            "Juegos, acertijos y humor",
+            "Cuidado corporal y bienestar",
+            "Salud general con límites responsables",
+            "Capacidades motrices y envejecimiento saludable"
         ]
     }
 };

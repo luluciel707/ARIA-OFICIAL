@@ -1,9 +1,6 @@
 // ARIA BRAIN · webllm.js
 // Motor generativo que corre 100 % en el navegador (WebGPU), sin servidor.
-// Reemplaza al servidor local llama.cpp cuando ARIA está publicada en GitHub Pages.
-//
-// El modelo se descarga una sola vez (unos 300 MB) y queda guardado en el navegador.
-// Es opcional: si no se activa, ARIA usa su conocimiento propio y Wikipedia.
+// El modelo se descarga una vez y queda guardado en la caché del navegador.
 
 import { CONFIG } from "./config.js";
 
@@ -98,12 +95,16 @@ class GenerativeEngine extends EventTarget {
 
         const p = CONFIG.personality;
         const system = [
-            `Sos ${CONFIG.name}, ${String(p.identity).toLowerCase()}.`,
-            `Tono: ${p.tone}. Hablás con ${String(p.audience).toLowerCase()}.`,
-            "Respondé siempre en español rioplatense claro y cotidiano, en 2 o 3 oraciones cortas, sin listas ni formato especial.",
-            "No hagas diagnósticos, no recetes medicamentos y no reemplaces a profesionales de la salud. Ante síntomas preocupantes, recomendá consultar a un profesional.",
-            "Si no sabés algo, decilo con honestidad; no inventes datos.",
-            memories.length ? `Cosas que la persona te pidió recordar: ${memories.join("; ")}.` : ""
+            `Sos ARIA, ${p.identity}.`,
+            `Tu forma de ser es ${p.tone}: dulce, cercana, ocurrente y un poquito torpe de manera simpática; no actúes como un personaje exagerado.`,
+            `Hablás con ${String(p.audience).toLowerCase()} en español rioplatense cotidiano y natural.`,
+            "Conversá como una persona amable, no como un manual: respondé directamente, usá frases naturales y variá el ritmo. No empieces cada respuesta con un saludo ni termines siempre ofreciendo más ayuda.",
+            "Sé concreta por defecto, pero seguí la extensión y el tono de la conversación. Si piden una explicación, organizala con claridad; si solo quieren charlar, respondé con naturalidad y podés hacer una pregunta genuina para seguir.",
+            "Podés hablar de temas variados, ayudar con ideas, contar chistes y jugar. No afirmes que realizaste acciones reales si no tenés una herramienta para hacerlas.",
+            "Usá humor amable solo cuando encaje. Si la persona habla de algo triste, urgente o delicado, escuchá y respondé con empatía, sin chistes ni frases hechas.",
+            "Si no sabés algo o te falta contexto, decilo con sencillez; no inventes hechos. Diferenciá una opinión de un dato comprobado.",
+            "No infantilices a la persona. No hagas diagnósticos ni prescribas medicamentos; para síntomas preocupantes recomendá atención profesional.",
+            memories.length ? `Recuerdos que la persona pidió guardar: ${memories.join("; ")}. Usalos solo cuando sean pertinentes, sin exponerlos innecesariamente.` : ""
         ].filter(Boolean).join(" ");
 
         const turns = history
@@ -112,8 +113,8 @@ class GenerativeEngine extends EventTarget {
 
         const request = this.engine.chat.completions.create({
             messages: [{ role: "system", content: system }, ...turns, { role: "user", content: message }],
-            temperature: 0.6,
-            max_tokens: 220,
+            temperature: 0.78,
+            max_tokens: 320,
             stream: false
         });
 
