@@ -15,24 +15,16 @@
 
         <header>
             <div class="logo">A</div>
-
             <div>
                 <h1>ARIA</h1>
                 <p>PERSONAL AI SYSTEM</p>
             </div>
-
-            <span id="brainStatus" class="status">
-                ● INICIANDO
-            </span>
+            <span id="brainStatus" class="status">● INICIANDO</span>
         </header>
 
         <section class="welcome">
             <h2>¡Hola! Soy ARIA. ✨</h2>
-
-            <p>
-                Mi núcleo está activo.
-                ¿Qué hacemos hoy?
-            </p>
+            <p>Mi núcleo está activo. ¿Qué hacemos hoy?</p>
         </section>
 
         <section class="ai-bar">
@@ -41,13 +33,51 @@
             <button id="aiButton" type="button">Activar IA generativa</button>
         </section>
 
+        <details class="profile-panel" id="profilePanel">
+            <summary>Mi perfil y preferencias</summary>
+            <p class="panel-help">Estos datos se guardan solo en este navegador. Completá lo que quieras; no hace falta compartir información sensible.</p>
+            <div class="profile-grid">
+                <label>¿Cómo te llamo?
+                    <input id="profilePreferredName" type="text" maxlength="50" placeholder="Tu nombre o apodo">
+                </label>
+                <label>Estilo de conversación
+                    <select id="profileTone">
+                        <option value="cálida y cercana">Cálida y cercana</option>
+                        <option value="tranquila y directa">Tranquila y directa</option>
+                        <option value="alegre y juguetona">Alegre y juguetona</option>
+                        <option value="seria y profesional">Seria y profesional</option>
+                    </select>
+                </label>
+                <label>Extensión habitual
+                    <select id="profileVerbosity">
+                        <option value="breve">Breve</option>
+                        <option value="normal">Normal</option>
+                        <option value="detallado">Detallada</option>
+                    </select>
+                </label>
+                <label>Humor
+                    <select id="profileHumor">
+                        <option value="nulo">Prefiero sin chistes</option>
+                        <option value="ligero">Un poco, cuando encaje</option>
+                        <option value="alto">Me gusta el humor</option>
+                    </select>
+                </label>
+                <label class="wide">Temas que te gustan
+                    <input id="profileTopics" type="text" maxlength="300" placeholder="Ej.: música, cocina, historia">
+                </label>
+            </div>
+            <div class="profile-actions">
+                <button id="saveProfileButton" type="button">Guardar preferencias</button>
+                <button id="resetProfileButton" class="secondary-button" type="button">Borrar perfil</button>
+                <span id="profileStatus" role="status" aria-live="polite"></span>
+            </div>
+        </details>
+
         <section class="document-panel">
             <label for="documentTitle">Título del documento</label>
-            <input id="documentTitle" type="text" placeholder="Ej: Notas de trabajo, agenda, manual" />
-
+            <input id="documentTitle" type="text" placeholder="Ej: Notas de trabajo, agenda, manual">
             <label for="documentInput">Guardar texto para el contexto de ARIA</label>
             <textarea id="documentInput" rows="4" placeholder="Pegá una nota, un documento, un resumen o datos que quieras que recuerde."></textarea>
-
             <div class="doc-actions">
                 <button id="saveDocumentButton" type="button">Guardar documento</button>
                 <span id="ragStatus">Contexto activo: 0 documentos</span>
@@ -55,37 +85,19 @@
         </section>
 
         <section id="chat" class="chat" aria-live="polite">
-
-            <div class="message aria">
-                ¡Estoy lista para conversar!
-            </div>
-
+            <div class="message aria">¡Estoy lista para conversar!</div>
         </section>
 
         <form id="messageForm">
-
-            <input
-                id="messageInput"
-                type="text"
-                placeholder="Escribime algo..."
-                autocomplete="off"
-                required
-            >
-
-            <button id="sendButton" type="submit">
-                Enviar ✦
-            </button>
-
+            <input id="messageInput" type="text" placeholder="Escribime algo..." autocomplete="off" required>
+            <button id="sendButton" type="submit">Enviar ✦</button>
         </form>
 
-        <footer>
-            ARIA BRAIN v0.1 · LOCAL SYSTEM
-        </footer>
+        <footer>ARIA BRAIN v0.1 · LOCAL SYSTEM</footer>
 
     </main>
 
     <script type="module">
-
         import { ariaBrain } from "./js/core.js";
 
         const chat = document.getElementById("chat");
@@ -98,6 +110,15 @@
         const saveDocumentButton = document.getElementById("saveDocumentButton");
         const ragStatus = document.getElementById("ragStatus");
 
+        const profileFields = {
+            preferredName: document.getElementById("profilePreferredName"),
+            tone: document.getElementById("profileTone"),
+            verbosity: document.getElementById("profileVerbosity"),
+            humor: document.getElementById("profileHumor"),
+            topics: document.getElementById("profileTopics")
+        };
+        const profileStatus = document.getElementById("profileStatus");
+
         function addMessage(content, type) {
             const element = document.createElement("div");
             element.className = `message ${type}`;
@@ -108,21 +129,44 @@
 
         function updateRAGStatus() {
             const count = ariaBrain.memory.getDocuments().length;
-            ragStatus.textContent = count
-                ? `Contexto activo: ${count} documento${count > 1 ? "s" : ""}`
-                : "Contexto activo: 0 documentos";
+            ragStatus.textContent = `Contexto activo: ${count} documento${count === 1 ? "" : "s"}`;
         }
 
+        function renderProfile() {
+            const profile = ariaBrain.memory.getProfile();
+            profileFields.preferredName.value = profile.name || (profile.preferredName === "amiga" ? "" : profile.preferredName);
+            profileFields.tone.value = profile.tone;
+            profileFields.verbosity.value = profile.verbosity;
+            profileFields.humor.value = profile.humor;
+            profileFields.topics.value = profile.favoriteTopics.join(", ");
+        }
+
+        document.getElementById("saveProfileButton").addEventListener("click", () => {
+            const preferredName = profileFields.preferredName.value.trim();
+            const saved = ariaBrain.memory.updateProfile({
+                name: preferredName,
+                preferredName: preferredName || "amiga",
+                tone: profileFields.tone.value,
+                verbosity: profileFields.verbosity.value,
+                humor: profileFields.humor.value,
+                favoriteTopics: profileFields.topics.value.split(",").map(topic => topic.trim()).filter(Boolean)
+            });
+            profileStatus.textContent = saved ? "Guardado en este navegador." : "No se pudo guardar. Revisá el almacenamiento del navegador.";
+        });
+
+        document.getElementById("resetProfileButton").addEventListener("click", () => {
+            ariaBrain.memory.resetProfile();
+            renderProfile();
+            profileStatus.textContent = "Perfil borrado.";
+        });
+
         function updateStatus() {
-            if (!ariaBrain.initialized) {
-                status.textContent = "● ERROR";
-                return;
-            }
-            status.textContent = "● BRAIN ACTIVO";
+            status.textContent = ariaBrain.initialized ? "● BRAIN ACTIVO" : "● ERROR";
         }
 
         updateStatus();
         updateRAGStatus();
+        renderProfile();
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -133,7 +177,6 @@
             input.value = "";
             input.disabled = true;
             sendButton.disabled = true;
-
             try {
                 const response = await ariaBrain.processMessage(message);
                 if (response) addMessage(response, "aria");
@@ -154,8 +197,11 @@
                 addMessage("Para guardar un documento, escribí algo antes.", "aria");
                 return;
             }
-
-            ariaBrain.memory.addDocument(title || "Documento", content);
+            const saved = ariaBrain.memory.addDocument(title || "Documento", content);
+            if (!saved) {
+                addMessage("No pude guardar el documento; quizá el almacenamiento del navegador está lleno.", "aria");
+                return;
+            }
             documentTitle.value = "";
             documentInput.value = "";
             updateRAGStatus();
@@ -179,22 +225,14 @@
 
         ai.addEventListener("status", renderAI);
         renderAI();
-
         aiButton.addEventListener("click", () => {
             if (ai.state === "ready") { ai.disable(); return; }
-            ai.enable().then(() => {
-                ariaBrain.announce("Ya estoy lista. Ahora puedo conversar con vos sobre muchos más temas.");
-            }).catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
+            ai.enable().then(() => ariaBrain.announce("Ya estoy lista. Ahora puedo conversar con vos sobre muchos más temas."))
+                .catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
         });
 
         window.addEventListener("aria:response", (event) => addMessage(event.detail, "aria"));
-
-        window.ariaChat = {
-            refresh: updateStatus,
-            addMessage,
-            updateRAGStatus
-        };
-
+        window.ariaChat = { refresh: updateStatus, addMessage, updateRAGStatus };
     </script>
 
 </body>
