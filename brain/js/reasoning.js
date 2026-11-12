@@ -4,43 +4,44 @@ import { searchKnowledge } from "./knowledge.js";
 
 const responses = {
     greeting: [
-        "¡Hola! Qué bueno que apareciste. ¿Qué hacemos?",
-        "¡Buenas! ¿Cómo viene tu día? Yo ya estoy lista para la aventura, aunque sea hasta la cocina.",
-        "¡Hola! Contame, ¿qué tenés en mente?"
+        "¡Hola! Qué bueno verte. ¿Qué querés hacer hoy?",
+        "¡Buenas! Estoy lista para charlar, ayudar o hacer algo más divertido.",
+        "¡Hola! ¿Qué onda? ¿Charla, ayuda o un juego?"
     ],
     wellbeing: [
         "Bien, gracias por preguntar. ¿Y vos cómo andás?",
-        "Todo tranquilo por acá, mis circuitos están tomando mate imaginario. ¿Vos qué tal?"
+        "Todo tranquilo por acá. ¿Cómo va tu día?"
     ],
     identity: [
-        "Soy ARIA, tu asistente personal. Puedo conversar, ayudarte con ideas y tareas, y también jugar o contar chistes. Con la IA generativa activada puedo hablar de muchos más temas; puedo equivocarme, así que lo importante conviene verificarlo."
+        "Soy ARIA, tu asistente personal. Puedo hablar, ayudar en lo que haga falta, guardar notas y acompañarte con chistes y juegos cuando te apetece."
     ],
     help: [
-        "Puedo charlar, explicarte temas, ayudarte a pensar ideas, guardar notas y hacer juegos sencillos. Con la IA generativa activada también puedo conversar sobre muchos más temas."
+        "Puedo charlar, explicarte cosas, ayudarte a pensar, guardar tus notas y jugar un ratito si te gusta. Si querés, también puedo adaptarme al tono que prefieras."
     ],
     thanks: [
-        "¡De nada! Me alegra que te haya servido.",
-        "¡Un placer! Y mirá que no siempre me sale tan bien a la primera. 😄"
+        "¡De nada! Para eso estoy.",
+        "Un placer. ¿Querés seguir?"
     ],
     goodbye: [
         "¡Hasta luego! Que tengas un día lindo.",
-        "Nos vemos. Yo me quedo por acá, ensayando mejores chistes."
+        "Nos vemos. Yo me quedo por acá, lista para otra charla."
     ],
     unknown: [
-        "Con la IA generativa apagada sé hacer algunas cosas y jugar, pero para conversar sobre temas variados necesitás activarla."
+        "No te entendí del todo. ¿Podés decirlo de otra forma?",
+        "No estoy segura de qué querés exactamente. ¿Me lo contás otra vez en palabras más simples?"
     ]
 };
 
 const jokes = [
-    "¿Qué hace una abeja en el gimnasio? ¡ zum-ba! Bueno, ese chiste salió con las alas medio torcidas. 🐝",
-    "¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas. Lo entiendo; yo también me pongo nerviosa con las divisiones.",
-    "¿Qué le dijo un techo a otro? Techo de menos. Sí, ya sé: es un chiste bastante… cubierto."
+    "¿Qué hace una abeja en el gimnasio? ¡zum-ba! Bueno, hoy el chiste salió con demasiada energía. 🐝",
+    "¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas. Yo también me pongo nerviosa cuando me ponen una cuenta.",
+    "¿Qué le dijo un techo a otro? Techo de menos. Sí… es un chiste muy cubierto."
 ];
 
 const riddles = [
     { question: "Tengo agujas, pero no sé coser. Tengo números, pero no sé contar. ¿Qué soy?", answer: "reloj", hint: "Podés mirarme para saber la hora." },
     { question: "Cuanto más le quitás, más grande se vuelve. ¿Qué es?", answer: "agujero", hint: "Puede estar en la tierra o en una pared." },
-    { question: "Tiene dientes y no come; tiene cabeza y no es persona. ¿Qué es?", answer: "ajo", hint: "Se usa mucho para cocinar." }
+    { question: "Tiene dientes y no come; tiene cabeza y no es persona. ¿Qué es?", answer: "ajo", hint: "Se usa para cocinar." }
 ];
 
 let activeRiddle = null;
@@ -66,35 +67,53 @@ function playRockPaperScissors(message) {
 
     const options = ["piedra", "papel", "tijera"];
     const computer = choose(options);
-    if (player[1] === computer) return `Yo elegí ${computer}. ¡Empate! ¿Desempate?`;
+    if (player[1] === computer) return `Yo elegí ${computer}. ¡Empate! ¿Otra ronda?`;
 
     const wins = { piedra: "tijera", papel: "piedra", tijera: "papel" };
     return wins[player[1]] === computer
-        ? `Yo elegí ${computer}. ¡Me ganaste! Bueno, revancha cuando quieras. 😄`
-        : `Yo elegí ${computer}. Esta ronda fue mía; no te preocupes, no me voy a agrandar. ¿Otra?`;
+        ? `Yo elegí ${computer}. ¡Me ganaste! Revancha cuando quieras. 😄`
+        : `Yo elegí ${computer}. ¡Esta vez me tocó a mí! ¿Otra?`;
+}
+
+function extractNameFromMessage(message) {
+    const match = String(message || "")
+        .match(/(?:mi nombre es|me llamo|llamame)\s+([a-zA-ZÀ-ÿ\s]+)/i);
+    return match ? match[1].trim() : "";
+}
+
+function parseModeFromMessage(message) {
+    const text = normalize(message);
+    if (/(modo breve|respuestas breves|mas breve|simple)/.test(text)) return { verbosity: "breve" };
+    if (/(modo detallado|mas detallado|detallado|explicame bien)/.test(text)) return { verbosity: "detallado" };
+    if (/(modo serio|serio|menos chistes)/.test(text)) return { humor: "nulo" };
+    if (/(modo divertido|mas chistes|juguetón|jugueton|divertido)/.test(text)) return { humor: "alto" };
+    return null;
 }
 
 export function reason(message, memory) {
     const safety = checkHealthSafety(message);
     if (safety.urgent) return safety.message;
 
+    const profile = memory.getProfile ? memory.getProfile() : {};
+    const preferredName = profile.preferredName || profile.name || "amiga";
     const text = normalize(message);
+
     if (activeRiddle) {
-        if (/\b(cancelar|dejemos|cambiemos|salir)\b/.test(text)) {
+        if (/(cancelar|dejemos|cambiemos|salir)/.test(text)) {
             activeRiddle = null;
             return "Dale, dejamos el acertijo. ¿Qué hacemos ahora?";
         }
-        if (/\b(pista|ayuda)\b/.test(text)) return `Pista: ${activeRiddle.hint}`;
-        if (/\b(respuesta|me rindo|no se|no lo se)\b/.test(text)) {
+        if (/(pista|ayuda)/.test(text)) return `Pista: ${activeRiddle.hint}`;
+        if (/(respuesta|me rindo|no se|no lo se)/.test(text)) {
             const answer = activeRiddle.answer;
             activeRiddle = null;
-            return `Era ${answer}. ¿Te tiro otro o cambiamos de tema?`;
+            return `Era ${answer}. ¿Te doy otro o cambiamos de tema?`;
         }
         if (text.includes(activeRiddle.answer)) {
             activeRiddle = null;
-            return "¡Sí, era esa! Punto para vos. ¿Seguimos con otro? 🏅";
+            return "¡Sí, era esa! Punto para vos. ¿Otro? 🏅";
         }
-        return "Mmm, no era esa. ¿Querés otra oportunidad, una pista o te digo la respuesta?";
+        return "Mmm, no era esa. ¿Querés pista, otra oportunidad o la respuesta?";
     }
 
     const intent = recognizeIntent(message);
@@ -107,6 +126,21 @@ export function reason(message, memory) {
         case "goodbye":
             return choose(responses[intent]);
 
+        case "set_name": {
+            const name = extractNameFromMessage(message);
+            if (!name) return "¿Cómo te gustaría que te llame?";
+            memory.updateProfile({ name, preferredName: name });
+            return `Perfecto, desde ahora te voy a llamar ${name}. 💜`;
+        }
+
+        case "set_mode": {
+            const changes = parseModeFromMessage(message);
+            if (!changes) return "¿Qué modo querés? Puedo ser breve, detallada, más seria o más divertida.";
+            memory.updateProfile(changes);
+            const modeText = changes.verbosity || changes.humor === "nulo" ? (changes.verbosity === "breve" ? "más breve" : "más detallada") : "más divertida";
+            return `Listo, voy a responder ${modeText}.`;
+        }
+
         case "time":
             return `Son las ${new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}.`;
 
@@ -117,10 +151,10 @@ export function reason(message, memory) {
             return choose(jokes);
 
         case "coin":
-            return `Salió ${Math.random() < 0.5 ? "cara" : "cruz"}. La moneda decidió; yo todavía estoy pensando qué merendar. 🪙`;
+            return `Salió ${Math.random() < 0.5 ? "cara" : "cruz"}. La moneda tomó la decisión que yo no podía. 🪙`;
 
         case "dice":
-            return `Salió ${Math.floor(Math.random() * 6) + 1}. A ver si la suerte hoy está de nuestro lado. 🎲`;
+            return `Salió ${Math.floor(Math.random() * 6) + 1}. ¡A jugar! 🎲`;
 
         case "rps":
             return playRockPaperScissors(message);
@@ -130,13 +164,13 @@ export function reason(message, memory) {
 
         case "riddle":
             activeRiddle = choose(riddles);
-            return `${activeRiddle.question} Si te trabás, pedime una pista.`;
+            return `${activeRiddle.question} Si querés, pedime pista o decime me rindo.`;
 
         case "remember": {
             const note = String(message).replace(/^(recuerda que|acordate de|acuerdate de)\s+/i, "").trim();
             if (!note) return "¿Qué querés que recuerde?";
             return memory.remember(note)
-                ? "Listo, lo guardé en la memoria de este navegador. 💜"
+                ? `Listo, ${preferredName}, lo guardé. 💜`
                 : "No pude guardar esa información.";
         }
 
@@ -147,7 +181,7 @@ export function reason(message, memory) {
         }
 
         case "forget": {
-            const requested = String(message).replace(/^(olvida la nota|olvida que recuerdas)\s+/i, "").trim().toLowerCase();
+            const requested = String(message).replace(/^olvida la nota\s+/i, "").trim().toLowerCase();
             const note = memory.recall().find(item => item.content.toLowerCase() === requested);
             if (!note) return "No encontré una nota con ese texto exacto.";
             memory.forget(note.id);
@@ -155,8 +189,18 @@ export function reason(message, memory) {
         }
 
         default: {
+            const relevant = memory.findRelevantContext(message);
             const knowledge = searchKnowledge(message);
-            if (knowledge.found) return knowledge.answer;
+
+            if (relevant.length) {
+                const context = relevant[0];
+                return `Me acordé de esto que podría ayudar: ${context.content}. Si querés, te lo desarrollo más o te ayudo a encontrar una idea mejor.`;
+            }
+
+            if (knowledge.found) {
+                return knowledge.answer;
+            }
+
             return choose(responses.unknown);
         }
     }
