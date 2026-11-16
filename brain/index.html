@@ -1,15 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <meta name="theme-color" content="#07111f">
-
     <title>ARIA BRAIN</title>
-
     <link rel="stylesheet" href="./style.css">
 </head>
 
@@ -19,176 +15,115 @@
 
         <header>
             <div class="logo">A</div>
-
             <div>
                 <h1>ARIA</h1>
                 <p>PERSONAL AI SYSTEM</p>
             </div>
-
-            <span id="brainStatus" class="status">
-                ● INICIANDO
-            </span>
+            <span id="brainStatus" class="status">● INICIANDO</span>
         </header>
 
-        <section class="welcome">
-            <h2>¡Hola! Soy ARIA. ✨</h2>
+        <nav class="tabs" role="tablist">
+            <button type="button" class="tab active" data-tab="chat">💬 Chat</button>
+            <button type="button" class="tab" data-tab="reminders">🔔 Avisos</button>
+            <button type="button" class="tab" data-tab="profile">👤 Perfil</button>
+            <button type="button" class="tab" data-tab="knowledge">📚 Saber</button>
+        </nav>
 
-            <p>
-                Mi núcleo está activo.
-                ¿Qué hacemos hoy?
-            </p>
-        </section>
-
-        <section class="ai-bar">
-            <span id="aiStatus">IA generativa: apagada</span>
-            <progress id="aiProgress" max="1" value="0" hidden></progress>
-            <button id="aiButton" type="button">Activar IA generativa</button>
-        </section>
-
-        <section id="chat" class="chat" aria-live="polite">
-
-            <div class="message aria">
-                ¡Estoy lista para conversar!
+        <!-- Aviso sonando -->
+        <section id="ringBanner" class="ring" hidden>
+            <span id="ringText">🔔</span>
+            <div class="ring-actions">
+                <button type="button" id="ringStop">Detener</button>
+                <button type="button" id="ringSnooze" class="ghost">Posponer 5 min</button>
             </div>
-
         </section>
 
-        <form id="messageForm">
+        <!-- CHAT -->
+        <section class="panel active" id="panel-chat">
+            <section class="ai-bar">
+                <span id="aiStatus">IA generativa: apagada</span>
+                <progress id="aiProgress" max="1" value="0" hidden></progress>
+                <button id="aiButton" type="button">Activar IA generativa</button>
+            </section>
 
-            <input
-                id="messageInput"
-                type="text"
-                placeholder="Escribime algo..."
-                autocomplete="off"
-                required
-            >
+            <section id="chat" class="chat" aria-live="polite"></section>
 
-            <button id="sendButton" type="submit">
-                Enviar ✦
-            </button>
+            <form id="messageForm">
+                <input id="messageInput" type="text" placeholder="Escribime algo…" autocomplete="off" required>
+                <button id="sendButton" type="submit">Enviar ✦</button>
+            </form>
+        </section>
 
-        </form>
+        <!-- AVISOS -->
+        <section class="panel" id="panel-reminders">
+            <h2>Recordatorios, alarmas y temporizadores</h2>
+            <p class="hint">También podés pedírmelos en el chat: «recordame mañana a las 8 llamar a mi hija».</p>
+            <ul id="reminderList" class="list"></ul>
 
-        <footer>
-            ARIA BRAIN v0.1 · LOCAL SYSTEM
-        </footer>
+            <form id="reminderForm" class="stack-form">
+                <select id="reminderKind" aria-label="Tipo">
+                    <option value="reminder">🔔 Recordatorio</option>
+                    <option value="alarm">⏰ Alarma</option>
+                </select>
+                <input id="reminderText" type="text" placeholder="¿Qué te recuerdo?" autocomplete="off">
+                <input id="reminderWhen" type="datetime-local" required>
+                <button type="submit">Agregar</button>
+            </form>
 
+            <div class="row">
+                <button type="button" id="notifyButton" class="ghost">Activar avisos del navegador</button>
+                <span id="notifyState" class="hint"></span>
+            </div>
+            <p class="hint">Las alarmas suenan mientras esta página esté abierta.</p>
+        </section>
+
+        <!-- PERFIL -->
+        <section class="panel" id="panel-profile">
+            <h2>Tu perfil</h2>
+            <p class="hint">Todo se guarda solo en este navegador. También lo aprendo charlando con vos.</p>
+            <form id="profileForm" class="stack-form">
+                <label>Nombre <input id="pfName" type="text" autocomplete="off"></label>
+                <label>Cómo querés que te diga <input id="pfNick" type="text" autocomplete="off"></label>
+                <label>Cumpleaños <input id="pfBirthday" type="text" placeholder="ej.: 5 de mayo" autocomplete="off"></label>
+                <label>Edad <input id="pfAge" type="text" inputmode="numeric" autocomplete="off"></label>
+                <label>Ciudad <input id="pfCity" type="text" autocomplete="off"></label>
+                <label>Cosas que te gustan (separadas por coma) <input id="pfLikes" type="text" autocomplete="off"></label>
+                <label>Cosas que no te gustan <input id="pfDislikes" type="text" autocomplete="off"></label>
+                <label>Otras notas sobre vos <textarea id="pfNotes" rows="3"></textarea></label>
+                <div class="row">
+                    <button type="submit">Guardar perfil</button>
+                    <button type="button" id="pfReset" class="ghost danger">Borrar perfil</button>
+                    <span id="pfSaved" class="hint"></span>
+                </div>
+            </form>
+        </section>
+
+        <!-- CONOCIMIENTO -->
+        <section class="panel" id="panel-knowledge">
+            <h2>Memoria y documentos</h2>
+            <p class="hint">Lo que agregues acá lo uso para responderte (por ejemplo: tus medicinas, recetas, teléfonos).</p>
+
+            <form id="docForm" class="stack-form">
+                <input id="docTitle" type="text" placeholder="Título (ej.: Mis medicinas)" autocomplete="off">
+                <textarea id="docText" rows="5" placeholder="Pegá o escribí el texto acá…"></textarea>
+                <div class="row">
+                    <button type="submit">Guardar documento</button>
+                    <label class="file">📎 Subir .txt / .md / .csv<input id="docFile" type="file" accept=".txt,.md,.csv,.json,text/plain"></label>
+                    <span id="docMsg" class="hint"></span>
+                </div>
+            </form>
+
+            <h3>Documentos guardados</h3>
+            <ul id="docList" class="list"></ul>
+
+            <h3>Notas («recordá que…»)</h3>
+            <ul id="noteList" class="list"></ul>
+        </section>
+
+        <footer>ARIA BRAIN v0.2 · LOCAL SYSTEM</footer>
     </main>
 
-    <script type="module">
-
-        import { ariaBrain } from "./js/core.js";
-
-        const chat = document.getElementById("chat");
-        const form = document.getElementById("messageForm");
-        const input = document.getElementById("messageInput");
-        const status = document.getElementById("brainStatus");
-        const sendButton = document.getElementById("sendButton");
-
-        function addMessage(content, type) {
-
-            const element = document.createElement("div");
-
-            element.className = `message ${type}`;
-            element.textContent = content;
-
-            chat.appendChild(element);
-
-            chat.scrollTop = chat.scrollHeight;
-        }
-
-        // Estado del cerebro.
-        function updateStatus() {
-
-            if (!ariaBrain.initialized) {
-                status.textContent = "● ERROR";
-                return;
-            }
-
-            status.textContent = "● BRAIN ACTIVO";
-        }
-
-        updateStatus();
-
-        // Enviar mensajes.
-        form.addEventListener("submit", async (event) => {
-
-            event.preventDefault();
-
-            const message = input.value.trim();
-
-            if (!message) return;
-
-            addMessage(message, "user");
-
-            input.value = "";
-            input.disabled = true;
-            sendButton.disabled = true;
-
-            try {
-
-                const response =
-                    await ariaBrain.processMessage(message);
-
-                if (response) {
-                    addMessage(response, "aria");
-                }
-
-            } catch (error) {
-
-                console.error("Error en el chat:", error);
-
-                addMessage(
-                    "Tuve un problema al procesar ese mensaje.",
-                    "aria"
-                );
-
-            } finally {
-
-                input.disabled = false;
-                sendButton.disabled = false;
-                input.focus();
-
-            }
-
-        });
-
-        // IA generativa del navegador: estado y botón.
-        const aiStatus = document.getElementById("aiStatus");
-        const aiProgress = document.getElementById("aiProgress");
-        const aiButton = document.getElementById("aiButton");
-        const ai = ariaBrain.ai;
-
-        function renderAI() {
-            const busy = ai.state === "loading";
-            aiStatus.textContent = "IA generativa: " + (ai.state === "ready" ? "activa" : ai.text.toLowerCase());
-            aiProgress.hidden = !busy;
-            aiProgress.value = ai.progress;
-            aiButton.disabled = busy || !ai.supported;
-            aiButton.textContent = ai.state === "ready" ? "Apagar IA generativa" : "Activar IA generativa";
-            if (!ai.supported) aiStatus.textContent = "IA generativa: tu navegador no tiene WebGPU";
-        }
-
-        ai.addEventListener("status", renderAI);
-        renderAI();
-
-        aiButton.addEventListener("click", () => {
-            if (ai.state === "ready") { ai.disable(); return; }
-            ai.enable().then(() => {
-                ariaBrain.announce("Ya estoy lista. Ahora puedo conversar con vos sobre muchos más temas.");
-            }).catch(() => addMessage("No pude cargar la IA generativa.", "aria"));
-        });
-
-        // Respuestas que no nacen del chat (por voz o avisos del sistema).
-        window.addEventListener("aria:response", (event) => addMessage(event.detail, "aria"));
-
-        // Exponer una pequeña función de diagnóstico.
-        window.ariaChat = {
-            refresh: updateStatus,
-            addMessage
-        };
-
-    </script>
-
+    <script type="module" src="./js/ui.js"></script>
 </body>
+
 </html>
