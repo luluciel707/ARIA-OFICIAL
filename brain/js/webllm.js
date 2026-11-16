@@ -6,6 +6,7 @@
 // Es opcional: si no se activa, ARIA usa su conocimiento propio y Wikipedia.
 
 import { CONFIG } from "./config.js";
+import { buildSystemPrompt } from "./personality.js";
 
 // Versión fija de la biblioteca (nunca "latest"), cargada desde jsDelivr.
 const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.63/+esm";
@@ -92,19 +93,13 @@ class GenerativeEngine extends EventTarget {
         this._set("off", "IA generativa apagada", 0);
     }
 
-    // history: [{ role, content }], memories: ["nota", ...]
-    async ask(message, history = [], memories = []) {
+    // history: [{ role, content }]
+    // ctx: { profile: "texto", retrieved: ["frase", ...], web: ["fuente: texto", ...] }  (también acepta un array de notas)
+    async ask(message, history = [], ctx = {}) {
         if (!this.ready) return null;
 
-        const p = CONFIG.personality;
-        const system = [
-            `Sos ${CONFIG.name}, ${String(p.identity).toLowerCase()}.`,
-            `Tono: ${p.tone}. Hablás con ${String(p.audience).toLowerCase()}.`,
-            "Respondé siempre en español rioplatense claro y cotidiano, en 2 o 3 oraciones cortas, sin listas ni formato especial.",
-            "No hagas diagnósticos, no recetes medicamentos y no reemplaces a profesionales de la salud. Ante síntomas preocupantes, recomendá consultar a un profesional.",
-            "Si no sabés algo, decilo con honestidad; no inventes datos.",
-            memories.length ? `Cosas que la persona te pidió recordar: ${memories.join("; ")}.` : ""
-        ].filter(Boolean).join(" ");
+        const c = Array.isArray(ctx) ? { retrieved: ctx } : (ctx || {});
+        const system = buildSystemPrompt({ profile: c.profile, retrieved: c.retrieved || [], web: c.web || [], now: new Date() });
 
         const turns = history
             .filter(item => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string")
@@ -112,8 +107,9 @@ class GenerativeEngine extends EventTarget {
 
         const request = this.engine.chat.completions.create({
             messages: [{ role: "system", content: system }, ...turns, { role: "user", content: message }],
-            temperature: 0.6,
-            max_tokens: 220,
+            temperature: 0.8,
+            top_p: 0.9,
+            max_tokens: 280,
             stream: false
         });
 
@@ -121,7 +117,7 @@ class GenerativeEngine extends EventTarget {
             setTimeout(() => reject(new Error("La IA tardó demasiado")), ASK_TIMEOUT_MS));
 
         const result = await Promise.race([request, timeout]);
-        const answer = cleanForSpeech(result?.choices?.[0]?.message?.content || "");
+        const answer = cleanForSpeech(result?.choices?.[0]?.message?.content || "").replace(/^ARIA:\s*/i, "");
         return answer || null;
     }
 }
