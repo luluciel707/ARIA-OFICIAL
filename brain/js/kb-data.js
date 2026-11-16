@@ -1,0 +1,97 @@
+// ARIA BRAIN · kb-data.js
+// Base de conocimiento incorporada (información general y educativa, NO reemplaza a un profesional).
+// Cada entrada: título, palabras clave (ayudan a encontrarla) y texto.
+
+export const KB = [
+    // ---------- Descanso y hábitos ----------
+    { title: "Dormir bien", cat: "Descanso", keywords: "dormir sueño descanso insomnio horas de sueño siesta",
+      text: "La mayoría de los adultos necesita entre 7 y 9 horas de sueño (en personas mayores suele alcanzar con 7 u 8). Ayuda acostarse y levantarse a horarios parecidos, tener el cuarto oscuro, fresco y silencioso, evitar café y mate muy tarde y dejar las pantallas un rato antes de dormir. La siesta corta, de hasta 30 minutos, suele ser reparadora. Si el insomnio dura semanas o hay ronquidos fuertes con pausas al respirar, conviene consultarlo." },
+    { title: "Rutina diaria saludable", cat: "Hábitos", keywords: "rutina hábitos diarios día saludable organizar el día",
+      text: "Una rutina amable combina horarios regulares de comida y sueño, algo de luz natural por la mañana, movimiento suave durante el día, un rato de actividad que te guste y contacto con otras personas. No hace falta que sea perfecta: lo importante es que sea sostenible." },
+    { title: "Tabaco y alcohol", cat: "Hábitos", keywords: "tabaco cigarrillo fumar alcohol vino cerveza dejar de fumar",
+      text: "No fumar es una de las mejores decisiones para el corazón y los pulmones, y dejarlo siempre trae beneficios, a cualquier edad. Con el alcohol, cuanto menos, mejor; en muchas personas y con ciertos medicamentos lo mejor es evitarlo. Un profesional puede ayudar con estrategias para dejar de fumar." },
+
+    // ---------- Hidratación y alimentación ----------
+    { title: "Hidratación", cat: "Alimentación", keywords: "agua hidratación hidratarse beber agua sed líquidos tomar agua litros",
+      text: "No hay una cifra única, pero una referencia común es 1,5 a 2 litros de líquidos por día (agua, infusiones, caldos y alimentos como frutas y verduras suman). Con calor o actividad hace falta más. En las personas mayores la sed se siente menos, por eso conviene tomar algo a lo largo del día aunque no haya sed. Con problemas de corazón o riñón, hay que seguir la indicación del médico." },
+    { title: "Alimentación equilibrada", cat: "Alimentación", keywords: "alimentación nutrición comer sano dieta plato saludable comidas verduras frutas ultraprocesados",
+      text: "Un plato equilibrado tiene aproximadamente la mitad de verduras y frutas, una parte de proteínas (legumbres, huevo, pescado, carnes magras, lácteos) y una parte de cereales, mejor integrales. Sumá grasas saludables como aceite de oliva o frutos secos y reducí ultraprocesados, azúcares y sal. Las necesidades cambian con cada persona; un nutricionista puede armar un plan a medida." },
+    { title: "Proteínas y masa muscular", cat: "Alimentación", keywords: "proteínas proteina músculo masa muscular carne huevo legumbres sarcopenia",
+      text: "Con los años se tiende a perder masa muscular (sarcopenia). Ayuda comer proteínas repartidas en las comidas del día (huevo, lácteos, legumbres, pescado, carnes) y hacer ejercicios de fuerza. Si hay enfermedad renal u otra condición, la cantidad adecuada la define el profesional de salud." },
+    { title: "Sal y presión arterial", cat: "Alimentación", keywords: "sal sodio salero hipertensión presión alta cocinar sin sal",
+      text: "La OMS recomienda consumir menos de 5 gramos de sal por día, aproximadamente una cucharadita. Ayuda no poner el salero en la mesa, usar hierbas, limón y especias para dar sabor y mirar las etiquetas de los productos envasados, que suelen tener mucha sal escondida." },
+    { title: "Calcio, vitamina D y huesos", cat: "Salud", keywords: "huesos calcio vitamina d osteoporosis lácteos fracturas densitometría",
+      text: "Para cuidar los huesos ayudan el calcio (lácteos, sardinas con espinas, verduras de hoja verde), algo de sol moderado, no fumar y ejercicios con carga, como caminar o levantarse de una silla. Si hay antecedentes de fracturas u osteoporosis, un médico puede indicar estudios y tratamiento." },
+    { title: "Tomar mate y tereré", cat: "Alimentación", keywords: "mate tereré yerba temperatura agua caliente cebar",
+      text: "Para el mate, el agua conviene que esté caliente pero sin hervir (alrededor de 70 a 80 grados): el agua muy caliente quema la yerba y puede lastimar. El tereré se toma con agua fría, y se puede acompañar con yuyos. En ambos casos cuenta como líquido; si te desvela, probá no tomar mate ni tereré muy tarde." },
+
+    // ---------- Movimiento y capacidades motrices ----------
+    { title: "Actividad física recomendada", cat: "Movimiento", keywords: "ejercicio actividad física cuánto ejercicio minutos semana caminar entrenar mayores 60 años",
+      text: "La OMS sugiere para adultos al menos 150 a 300 minutos semanales de actividad aeróbica moderada (como caminar a paso ligero) y ejercicios de fuerza 2 o más días por semana. En mayores se suman ejercicios de equilibrio unas 3 veces por semana. Empezá de a poco, aumentá gradualmente y consultá antes si tenés alguna condición de salud." },
+    { title: "Caminar", cat: "Movimiento", keywords: "caminar caminata paseo pasos salir a caminar",
+      text: "Caminar es una de las actividades más completas y accesibles. Una pauta amable es 30 minutos a un ritmo en que puedas conversar pero no cantar; si te cuesta, hacelo en tres tandas de 10 minutos. Usá calzado firme, evitá las horas de más calor y llevá agua." },
+    { title: "Equilibrio", cat: "Movimiento", keywords: "equilibrio balance estabilidad ejercicios de equilibrio caídas mareo pararse en un pie tai chi",
+      text: "El equilibrio es la capacidad de mantener la estabilidad al estar quietos o en movimiento. Para entrenarlo: pararse sobre un pie unos segundos con una mano apoyada en la mesada, caminar poniendo un pie justo delante del otro (talón con punta), levantarse y sentarse de una silla, o practicar tai chi. Siempre con algo firme cerca y calzado cerrado." },
+    { title: "Prevención de caídas", cat: "Movimiento", keywords: "caídas caer prevenir caídas alfombras baño escalones iluminación hogar seguro",
+      text: "Para prevenir caídas: buena iluminación (incluida la luz de noche hasta el baño), quitar alfombras sueltas y cables del paso, poner barras de apoyo y antideslizante en la ducha, usar calzado cerrado, controlar la vista y revisar con el médico los medicamentos que dan mareo. Fortalecer las piernas y el equilibrio también protege mucho." },
+    { title: "Fuerza muscular", cat: "Movimiento", keywords: "fuerza muscular fortalecer músculos pesas sentadillas bandas elásticas levantar piernas brazos",
+      text: "Con 2 o 3 sesiones semanales de ejercicios de fuerza se mantiene y mejora la masa muscular a cualquier edad. Opciones simples: sentarse y levantarse de una silla, flexiones apoyando las manos en la pared, levantar botellitas con agua o usar bandas elásticas, y subir escalones con apoyo. Hacé 8 a 12 repeticiones, sin dolor y respirando con calma." },
+    { title: "Flexibilidad y estiramientos", cat: "Movimiento", keywords: "flexibilidad estirar estiramiento elongar elongación rigidez articulaciones",
+      text: "Los estiramientos funcionan mejor con el cuerpo ya entrado en calor. Mantené cada postura entre 15 y 30 segundos, sin rebotes y sin dolor (una tensión suave es normal). Cuello, hombros, espalda, parte trasera de los muslos y pantorrillas son zonas muy agradecidas." },
+    { title: "Coordinación y motricidad fina", cat: "Movimiento", keywords: "coordinación motricidad fina manos dedos destreza ensartar tejer dibujar escribir temblor agarre",
+      text: "La coordinación organiza los movimientos para hacer cosas con precisión. Para la motricidad fina de las manos ayudan tocar con el pulgar cada dedo, amasar, ensartar cuentas, tejer o bordar, dibujar, armar rompecabezas o barajar cartas. Los ejercicios cortos y diarios rinden más que una sesión larga." },
+    { title: "Calentamiento y movilidad articular", cat: "Movimiento", keywords: "calentamiento entrada en calor movilidad articular articulaciones rigidez hombros muñecas tobillos rodillas",
+      text: "Un buen calentamiento de 3 a 5 minutos prepara el cuerpo: marcha suave en el lugar, círculos con los hombros, giros lentos de muñecas y tobillos, y rotaciones suaves del cuello. Se hace despacio y sin forzar, aun en las mañanas con rigidez." },
+    { title: "Movilidad y autonomía", cat: "Movimiento", keywords: "movilidad movimiento autonomía independencia actividades cotidianas levantarse sentarse agacharse",
+      text: "La movilidad es la capacidad de mover el cuerpo y las articulaciones; permite caminar, sentarse, levantarse y alcanzar objetos. Mantenerla es clave para conservar la independencia en las actividades diarias, y se logra con movimiento regular, adaptado a las posibilidades de cada persona." },
+    { title: "Postura y ergonomía", cat: "Movimiento", keywords: "postura espalda ergonomía sentarse mal cuello pantalla computadora celular",
+      text: "Sentarse con la espalda apoyada, los pies en el piso y la pantalla a la altura de los ojos ayuda a evitar dolores de cuello y espalda. Cada 30 a 60 minutos conviene levantarse, estirarse y caminar un minuto." },
+    { title: "Dolor de espalda", cat: "Salud", keywords: "dolor de espalda me duele la espalda duele lumbar lumbalgia cintura ciática dolor de cuello",
+      text: "En la mayoría de los casos el dolor de espalda mejora con movimiento suave, calor local y evitando el reposo prolongado. Conviene consultar si el dolor es intenso, aparece después de un golpe, hay hormigueo, pérdida de fuerza, fiebre, problemas para controlar la orina o si no mejora en unas semanas." },
+
+    // ---------- Salud general ----------
+    { title: "Presión arterial", cat: "Salud", keywords: "presión arterial presion tensión medir la presión se mide cómo se mide tomar la presión hipertensión 120 80 tensiómetro",
+      text: "Para medir bien la presión: sentate con la espalda apoyada y descansá 5 minutos, apoyá el brazo a la altura del corazón y no tomes café ni fumes media hora antes. Como referencia general, menos de 120/80 se considera normal, y valores repetidos de 130/80 o más conviene consultarlos con el médico. Si la presión es de 180/120 o más junto con dolor de cabeza intenso, dolor en el pecho o dificultad para hablar, hay que buscar atención de urgencia." },
+    { title: "Diabetes y azúcar en sangre", cat: "Salud", keywords: "diabetes glucosa azúcar en sangre glucemia sed orinar mucho hemoglobina glicosilada",
+      text: "La diabetes es una condición en la que el cuerpo no maneja bien el azúcar en sangre. Mucha sed, orinar seguido, cansancio y cortes que tardan en curar son señales para consultar. El diagnóstico y el tratamiento los hace un profesional; la alimentación variada, el movimiento y los controles periódicos son parte importante del cuidado." },
+    { title: "Corazón y circulación", cat: "Salud", keywords: "corazón cardiovascular infarto circulación colesterol cuidar el corazón",
+      text: "Para cuidar el corazón ayudan el ejercicio regular, no fumar, controlar la presión y el colesterol, comer con menos sal y ultraprocesados y manejar el estrés. Dolor u opresión en el pecho, falta de aire o desmayos son señales de emergencia: hay que llamar enseguida a emergencias." },
+    { title: "Vista y ojos", cat: "Salud", keywords: "vista ojos visión anteojos cataratas glaucoma control oftalmológico lentes",
+      text: "A partir de los 60 conviene un control oftalmológico al menos una vez al año: permite detectar a tiempo cataratas, glaucoma u otras alteraciones. Usar anteojos actualizados, tener buena luz para leer y proteger los ojos del sol con lentes adecuados también ayuda." },
+    { title: "Audición", cat: "Salud", keywords: "audición oído oídos sordera audífonos escuchar mal hipoacusia",
+      text: "Si sentís que hay que subir el volumen de la tele, te cuesta seguir conversaciones con ruido o pedís que repitan seguido, un estudio audiológico puede ayudar. Hoy hay audífonos muy cómodos, y tratar la pérdida de audición a tiempo mejora la vida social y el ánimo." },
+    { title: "Cuidado bucal", cat: "Salud", keywords: "dientes boca bucal dentista cepillado prótesis dental encías muelas",
+      text: "Cepillate los dientes después de las comidas principales, con pasta con flúor, y usá hilo o cepillos interdentales una vez al día. Si usás prótesis, sacala y limpiala todos los días. Un control odontológico una o dos veces al año ayuda a prevenir problemas." },
+    { title: "Cuidado de la piel y protección solar", cat: "Salud", keywords: "piel cuidar la piel sol protector solar lunares manchas higiene cremas hidratar",
+      text: "Usar protector solar de FPS 30 o más todos los días en zonas expuestas, renovarlo cada 2 horas si estás al sol, y evitar el sol fuerte de media jornada protege la piel. Hidratarla con cremas suaves ayuda a la piel seca. Si un lunar cambia de forma, color o tamaño, o sangra, conviene que lo vea un dermatólogo." },
+    { title: "Calor extremo y golpe de calor", cat: "Salud", keywords: "calor golpe de calor deshidratación verano ola de calor temperatura alta insolación",
+      text: "Con mucho calor: tomá líquidos sin esperar a tener sed, usá ropa clara y holgada, evitá salir en las horas centrales y refrescá la casa. Confusión, piel caliente y seca, temperatura muy alta o desmayo pueden ser golpe de calor: es una emergencia, hay que llamar a emergencias y refrescar a la persona mientras tanto." },
+    { title: "Fiebre y resfríos", cat: "Salud", keywords: "fiebre resfrío gripe tos congestión temperatura febril malestar",
+      text: "En un resfrío o gripe común ayudan el descanso, los líquidos y la alimentación liviana. Conviene consultar si la fiebre dura más de 2 o 3 días, es muy alta, hay dificultad para respirar, confusión, rigidez de cuello o si la persona es mayor o tiene enfermedades de base. Los medicamentos, mejor consultarlos con un profesional." },
+    { title: "Vacunas en adultos y mayores", cat: "Salud", keywords: "vacunas vacunación gripe neumococo covid tétanos herpes zóster calendario",
+      text: "En adultos mayores suelen recomendarse la vacuna antigripal anual, la del neumococo, la del tétanos y otras según cada caso y cada calendario nacional. Lo mejor es consultar con el médico o el vacunatorio cuál corresponde a tu situación." },
+    { title: "Organizar la medicación", cat: "Salud", keywords: "medicación medicamentos pastillas remedios pastillero olvidos horarios tomar remedios",
+      text: "Un pastillero semanal, alarmas para los horarios y una lista actualizada de todo lo que tomás (para llevar al médico) ayudan mucho. No cambies ni suspendas dosis sin consultar, y preguntale al farmacéutico por interacciones. Puedo programarte recordatorios con los horarios cuando quieras." },
+    { title: "Primeros auxilios básicos", cat: "Salud", keywords: "primeros auxilios quemadura corte herida atragantamiento ahogo hemorragia emergencia",
+      text: "Quemadura leve: agua fresca de la canilla durante 10 a 20 minutos, sin hielo, manteca ni pasta dental. Corte: presionar con gasa limpia hasta que pare el sangrado y lavar con agua y jabón. Atragantamiento si no puede toser ni hablar: pedir ayuda a emergencias y aplicar la maniobra indicada por un curso de primeros auxilios. Ante cualquier duda, llamar a emergencias." },
+
+    // ---------- Mente y emociones ----------
+    { title: "Memoria y entrenamiento mental", cat: "Mente", keywords: "memoria olvidos entrenar la mente cerebro crucigramas concentración demencia",
+      text: "Para cuidar la memoria ayudan leer, hacer crucigramas o juegos de ingenio, aprender algo nuevo, conversar, hacer ejercicio y dormir bien. Algún olvido ocasional es normal; si los olvidos son frecuentes y te complican la vida diaria, conviene consultarlo con un profesional." },
+    { title: "Estrés y respiración", cat: "Mente", keywords: "estrés estres respiración relajación calmarme nervios tensión respirar profundo calma",
+      text: "Una respiración que calma: inspirá por la nariz contando hasta 4 y soltá el aire lento por la boca contando hasta 6. Repetila 5 veces. Las pausas durante el día, estirarse, escuchar música tranquila y salir a tomar aire también ayudan a bajar la tensión." },
+    { title: "Ansiedad y ánimo bajo", cat: "Mente", keywords: "ansiedad tristeza ánimo bajo depresión angustia desánimo preocupación miedo",
+      text: "Sentirse triste o ansioso por momentos es humano. Ayudan hablar con alguien de confianza, mantener una rutina, moverse un poco, tomar luz natural y hacer algo que te guste. Si el malestar dura más de dos semanas o te impide hacer tu vida, vale mucho consultar a un profesional de salud mental." },
+    { title: "Soledad y vínculos", cat: "Mente", keywords: "soledad sentirse solo compañía amigos vínculos familia sociales aislamiento",
+      text: "La soledad pesa, y se puede aliviar de a poquito: una llamada o videollamada con alguien querido, un taller o grupo del barrio, el voluntariado, una caminata acompañada o cuidar una mascota. Y acá estoy yo también para charlar cuando quieras." },
+    { title: "Gratitud y buen ánimo", cat: "Mente", keywords: "buen ánimo alegría gratitud felicidad motivación bienestar emocional sentirse bien",
+      text: "Anotar cada noche tres cosas lindas del día, aunque sean pequeñas, mejora el ánimo con el tiempo. También ayudan reírse, escuchar música que te guste, cantar, bailar un poquito, juntarse con gente querida y hacer algo creativo." },
+
+    // ---------- Vida práctica ----------
+    { title: "Seguridad digital y estafas", cat: "Práctica", keywords: "estafa phishing seguridad clave contraseña banco me llamaron pidieron pidiendo llamada falsa whatsapp virus engaño fraude link",
+      text: "El banco nunca te pide claves, códigos ni que muevas plata por teléfono o mensaje. Desconfiá de mensajes urgentes con enlaces o de premios inesperados, no compartas códigos de verificación y, ante la duda, cortá y llamá vos al número oficial. Usar contraseñas distintas y verificación en dos pasos suma seguridad." },
+    { title: "Técnica Pomodoro y organización", cat: "Práctica", keywords: "pomodoro organizar tiempo concentración estudiar productividad tareas pendientes prioridades",
+      text: "La técnica Pomodoro consiste en trabajar 25 minutos concentrada en una sola tarea y descansar 5; después de cuatro rondas, un descanso más largo. Elegir las tres tareas más importantes del día y empezar por la más difícil también ayuda a avanzar sin estrés. Puedo ponerte un temporizador si querés." },
+    { title: "Medidas de cocina", cat: "Práctica", keywords: "medidas cocina taza cucharada cucharadita ml equivalencias receta gramos",
+      text: "Equivalencias útiles: 1 taza son unos 240 ml, 1 cucharada son unos 15 ml y 1 cucharadita unos 5 ml. Para el arroz blanco, una proporción habitual es 1 taza de arroz por 2 de agua, unos 18 minutos a fuego bajo y tapado. El huevo duro lleva unos 10 minutos en agua hirviendo." }
+];
