@@ -88,6 +88,7 @@ header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
     font-weight: 600;
 }
 .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+.chip .dot.off { background: #6f69a3; box-shadow: none; }
 .chip.user { padding: 6px 16px 6px 6px; border: 0; }
 .avatar {
     display: grid; place-items: center;
@@ -286,7 +287,8 @@ footer { margin-top: auto; padding-top: 6px; text-align: center; color: #6f69a3;
     header { gap: 12px; }
     .tabs { order: 3; flex-basis: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .tab { padding: 9px 16px; font-size: 14px; flex: none; }
-    .chips { margin-left: auto; }
+    .chips { margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+    .chip { padding: 8px 12px; font-size: 12px; }
     .hero { grid-template-columns: 1fr; padding: 28px 22px; gap: 28px; }
     .stat { grid-template-columns: 100px 1fr; }
     .px { font-size: 28px; }
@@ -295,3 +297,24 @@ footer { margin-top: auto; padding-top: 6px; text-align: center; color: #6f69a3;
     #panel-chat { height: calc(100dvh - 190px); }
     .message { max-width: 88%; }
 }
+
+/* ============ Modo incrustado (panel de chat sobre el holograma) ============ */
+
+body.embed { background: #070914; }
+.embed .app { max-width: none; height: 100dvh; min-height: 0; padding: 10px; gap: 10px; overflow: hidden; }
+.embed header { gap: 8px; }
+.embed .brand h1 { font-size: 20px; }
+.embed .logo { transform: scale(0.75); transform-origin: left center; width: 36px; }
+.embed .tabs { order: 3; flex-basis: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.embed .tab { flex: none; padding: 7px 14px; font-size: 13px; }
+.embed .tab[data-tab="home"], .embed #brainChip, .embed #userName { display: none; }
+.embed .chips { margin-left: auto; }
+.embed .chip { padding: 6px 11px; font-size: 10.5px; }
+.embed .chip.user { padding: 4px; }
+.embed .panel.card { flex: 1; min-height: 0; padding: 14px; border-radius: 18px; overflow-y: auto; }
+.embed #panel-chat { height: auto; min-height: 0; overflow: hidden; }
+.embed .message { max-width: 92%; font-size: 14px; }
+.embed .stack-form.grid2 { grid-template-columns: 1fr; }
+.embed .card h2 { font-size: 18px; }
+.embed footer { display: none; }
+.embed .ring { padding: 10px 14px; border-radius: 16px; font-size: 13px; }
