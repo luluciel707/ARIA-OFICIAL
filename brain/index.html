@@ -1,129 +1,297 @@
-<!DOCTYPE html>
-<html lang="es">
+/* ARIA BRAIN · estética neón sobre fondo oscuro (verde, cian, rosa e índigo) */
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#07111f">
-    <title>ARIA BRAIN</title>
-    <link rel="stylesheet" href="./style.css">
-</head>
+:root {
+    --bg: #07060f;
+    --ink: #f6f3ff;
+    --muted: #b9b3dc;
+    --green: #3dff12;
+    --cyan: #00f0ff;
+    --pink: #ff2d87;
+    --line: #3a3590;
+    --chip: #1c1946;
+    --field: #0d0b2b;
+    --card-a: #16144f;
+    --card-b: #221a7c;
+    --display: "Lexend", "Segoe UI", system-ui, sans-serif;
+    --pixel: "Silkscreen", "Courier New", monospace;
+}
 
-<body>
+* { box-sizing: border-box; }
 
-    <main class="app">
+html, body { margin: 0; min-height: 100%; }
 
-        <header>
-            <div class="logo">A</div>
-            <div>
-                <h1>ARIA</h1>
-                <p>PERSONAL AI SYSTEM</p>
-            </div>
-            <span id="brainStatus" class="status">● INICIANDO</span>
-        </header>
+body {
+    font-family: var(--display);
+    color: var(--ink);
+    background:
+        radial-gradient(900px 420px at 0% 0%, #4d0f3d 0%, transparent 62%),
+        radial-gradient(900px 600px at 100% 100%, #1a137066 0%, transparent 60%),
+        var(--bg);
+    background-attachment: fixed;
+}
 
-        <nav class="tabs" role="tablist">
-            <button type="button" class="tab active" data-tab="chat">💬 Chat</button>
-            <button type="button" class="tab" data-tab="reminders">🔔 Avisos</button>
-            <button type="button" class="tab" data-tab="profile">👤 Perfil</button>
-            <button type="button" class="tab" data-tab="knowledge">📚 Saber</button>
-        </nav>
+.app {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 18px 20px 26px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
 
-        <!-- Aviso sonando -->
-        <section id="ringBanner" class="ring" hidden>
-            <span id="ringText">🔔</span>
-            <div class="ring-actions">
-                <button type="button" id="ringStop">Detener</button>
-                <button type="button" id="ringSnooze" class="ghost">Posponer 5 min</button>
-            </div>
-        </section>
+/* ---------- encabezado ---------- */
 
-        <!-- CHAT -->
-        <section class="panel active" id="panel-chat">
-            <section class="ai-bar">
-                <span id="aiStatus">IA generativa: apagada</span>
-                <progress id="aiProgress" max="1" value="0" hidden></progress>
-                <button id="aiButton" type="button">Activar IA generativa</button>
-            </section>
+header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 
-            <section id="chat" class="chat" aria-live="polite"></section>
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo { position: relative; width: 46px; height: 44px; flex: none; }
+.logo i { position: absolute; border-radius: 50%; }
+.logo .a { width: 34px; height: 34px; background: var(--pink); left: 5px; top: 7px; }
+.logo .b { width: 13px; height: 13px; background: var(--cyan); left: 0; top: 0; }
+.logo .c { width: 16px; height: 16px; background: var(--green); right: 1px; bottom: 0; }
+.brand h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
 
-            <form id="messageForm">
-                <input id="messageInput" type="text" placeholder="Escribime algo…" autocomplete="off" required>
-                <button id="sendButton" type="submit">Enviar ✦</button>
-            </form>
-        </section>
+.tabs { display: flex; gap: 6px; flex: 1; justify-content: center; flex-wrap: wrap; }
 
-        <!-- AVISOS -->
-        <section class="panel" id="panel-reminders">
-            <h2>Recordatorios, alarmas y temporizadores</h2>
-            <p class="hint">También podés pedírmelos en el chat: «recordame mañana a las 8 llamar a mi hija».</p>
-            <ul id="reminderList" class="list"></ul>
+.tab {
+    position: relative;
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 15px;
+}
+.tab:hover { background: #ffffff14; }
+.tab.active { background: var(--green); color: #07060f; }
+.tab.has-new::after {
+    content: "";
+    position: absolute;
+    top: 6px; right: 8px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--pink);
+    box-shadow: 0 0 10px var(--pink);
+}
 
-            <form id="reminderForm" class="stack-form">
-                <select id="reminderKind" aria-label="Tipo">
-                    <option value="reminder">🔔 Recordatorio</option>
-                    <option value="alarm">⏰ Alarma</option>
-                </select>
-                <input id="reminderText" type="text" placeholder="¿Qué te recuerdo?" autocomplete="off">
-                <input id="reminderWhen" type="datetime-local" required>
-                <button type="submit">Agregar</button>
-            </form>
+.chips { display: flex; gap: 10px; align-items: center; }
 
-            <div class="row">
-                <button type="button" id="notifyButton" class="ghost">Activar avisos del navegador</button>
-                <span id="notifyState" class="hint"></span>
-            </div>
-            <p class="hint">Las alarmas suenan mientras esta página esté abierta.</p>
-        </section>
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+}
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+.chip.user { padding: 6px 16px 6px 6px; border: 0; }
+.avatar {
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--green);
+    color: #07060f;
+    font-size: 15px;
+}
 
-        <!-- PERFIL -->
-        <section class="panel" id="panel-profile">
-            <h2>Tu perfil</h2>
-            <p class="hint">Todo se guarda solo en este navegador. También lo aprendo charlando con vos.</p>
-            <form id="profileForm" class="stack-form">
-                <label>Nombre <input id="pfName" type="text" autocomplete="off"></label>
-                <label>Cómo querés que te diga <input id="pfNick" type="text" autocomplete="off"></label>
-                <label>Cumpleaños <input id="pfBirthday" type="text" placeholder="ej.: 5 de mayo" autocomplete="off"></label>
-                <label>Edad <input id="pfAge" type="text" inputmode="numeric" autocomplete="off"></label>
-                <label>Ciudad <input id="pfCity" type="text" autocomplete="off"></label>
-                <label>Cosas que te gustan (separadas por coma) <input id="pfLikes" type="text" autocomplete="off"></label>
-                <label>Cosas que no te gustan <input id="pfDislikes" type="text" autocomplete="off"></label>
-                <label>Otras notas sobre vos <textarea id="pfNotes" rows="3"></textarea></label>
-                <div class="row">
-                    <button type="submit">Guardar perfil</button>
-                    <button type="button" id="pfReset" class="ghost danger">Borrar perfil</button>
-                    <span id="pfSaved" class="hint"></span>
-                </div>
-            </form>
-        </section>
+/* ---------- botones y campos ---------- */
 
-        <!-- CONOCIMIENTO -->
-        <section class="panel" id="panel-knowledge">
-            <h2>Memoria y documentos</h2>
-            <p class="hint">Lo que agregues acá lo uso para responderte (por ejemplo: tus medicinas, recetas, teléfonos).</p>
+button {
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    border: 0;
+    border-radius: 999px;
+    padding: 13px 26px;
+    background: var(--green);
+    color: #07060f;
+    transition: transform 0.12s, filter 0.12s;
+}
+button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+button.ghost:hover:not(:disabled) { border-color: var(--cyan); }
+button.ghost.danger { color: #ffb0c8; border-color: #8a2a52; }
+button.small { padding: 7px 16px; font-size: 13px; }
+.chip.user:hover { filter: brightness(1.2); transform: none; }
 
-            <form id="docForm" class="stack-form">
-                <input id="docTitle" type="text" placeholder="Título (ej.: Mis medicinas)" autocomplete="off">
-                <textarea id="docText" rows="5" placeholder="Pegá o escribí el texto acá…"></textarea>
-                <div class="row">
-                    <button type="submit">Guardar documento</button>
-                    <label class="file">📎 Subir .txt / .md / .csv<input id="docFile" type="file" accept=".txt,.md,.csv,.json,text/plain"></label>
-                    <span id="docMsg" class="hint"></span>
-                </div>
-            </form>
+input, textarea, select {
+    font: inherit;
+    width: 100%;
+    min-width: 0;
+    padding: 13px 16px;
+    background: var(--field);
+    color: var(--ink);
+    border: 1.5px solid #34308a;
+    border-radius: 18px;
+    outline: none;
+}
+input::placeholder, textarea::placeholder { color: #8c86b8; }
+input:focus, textarea:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px #00f0ff22; }
+textarea { resize: vertical; }
 
-            <h3>Documentos guardados</h3>
-            <ul id="docList" class="list"></ul>
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.hint { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
 
-            <h3>Notas («recordá que…»)</h3>
-            <ul id="noteList" class="list"></ul>
-        </section>
+/* ---------- paneles ---------- */
 
-        <footer>ARIA BRAIN v0.2 · LOCAL SYSTEM</footer>
-    </main>
+.panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
+.panel.active { display: flex; }
 
-    <script type="module" src="./js/ui.js"></script>
-</body>
+.card {
+    padding: 26px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, var(--card-a), var(--card-b));
+    border: 1px solid #2f2a96;
+}
+.card h2 { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
+.card h3 { margin: 22px 0 8px; font-size: 15px; color: #d8d2ff; }
 
-</html>
+/* ---------- inicio ---------- */
+
+.hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: 36px;
+    align-items: center;
+    padding: 46px;
+    border-radius: 32px;
+    background: linear-gradient(135deg, #1a1762 0%, #2a1d8b 100%);
+    border: 1px solid #332e9e;
+}
+
+.tag {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 999px;
+    background: var(--cyan);
+    color: #031319;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.hero h2 { margin: 20px 0 16px; font-size: clamp(34px, 5.4vw, 62px); line-height: 1.03; font-weight: 800; letter-spacing: -1.5px; }
+.hero p { color: #d4cff6; line-height: 1.65; font-size: 16px; margin: 0 0 26px; max-width: 560px; }
+
+.stats { display: flex; flex-direction: column; gap: 26px; }
+.stat { display: grid; grid-template-columns: 130px 1fr; gap: 18px; align-items: center; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.px { font-family: var(--pixel); font-size: 34px; font-weight: 700; }
+.px.green { color: var(--green); }
+.px.cyan { color: var(--cyan); }
+.px.pink { color: var(--pink); }
+
+/* ---------- chat ---------- */
+
+#panel-chat { height: calc(100dvh - 150px); min-height: 440px; }
+
+.ai-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-bottom: 14px; color: var(--muted); font-size: 13px; }
+.ai-bar span { flex: 1; min-width: 160px; }
+.ai-bar progress { width: 140px; accent-color: var(--green); }
+
+.chat {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 4px 4px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #4b44b8 transparent;
+}
+
+.message {
+    max-width: min(78%, 620px);
+    padding: 13px 18px;
+    border-radius: 22px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    animation: pop 0.18s ease-out;
+}
+.message.aria { align-self: flex-start; background: #2a2490; border: 1px solid #4038b8; border-bottom-left-radius: 6px; }
+.message.user { align-self: flex-end; background: var(--green); color: #07060f; font-weight: 500; border-bottom-right-radius: 6px; }
+.message.typing { opacity: 0.6; letter-spacing: 4px; }
+
+.message .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.message .actions a {
+    padding: 6px 14px;
+    border: 1.5px solid var(--cyan);
+    border-radius: 999px;
+    color: var(--ink);
+    font-size: 13px;
+    text-decoration: none;
+}
+.message .actions a:hover { background: #00f0ff22; }
+
+#messageForm { display: flex; gap: 10px; margin-top: 12px; }
+#messageInput { border-radius: 999px; padding: 14px 22px; }
+
+/* ---------- avisos, perfil y memoria ---------- */
+
+.stack-form { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 14px; }
+.stack-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #d8d2ff; }
+.stack-form.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid2 .wide { grid-column: 1 / -1; }
+
+.file {
+    display: inline-block;
+    padding: 12px 18px;
+    border: 1.5px dashed var(--line);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.file:hover { border-color: var(--cyan); }
+.file input { display: none; }
+
+.list { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px;
+    background: #0d0b2baa;
+    border: 1px solid #2f2a96;
+    border-radius: 18px;
+    font-size: 14.5px;
+    overflow-wrap: anywhere;
+}
+.list li.empty { justify-content: center; color: var(--muted); border-style: dashed; }
+
+/* ---------- aviso sonando ---------- */
+
+.ring {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    padding: 14px 20px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #1f7a1255, #00f0ff2a);
+    border: 1.5px solid var(--green);
+    animation: glow 1.2s ease-in-out infinite;
+}
+.ring[hidden] { display: none; }
+.ring-actions { display: flex; gap: 8px; }
+
+footer { margin-top: auto; padding-top: 6px; text-align: center; color: #6f69a3; font-family: var(--pixel); font-size: 11px; letter-spacing: 1px; }
+
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } }
+@keyframes glow { 50% { box-shadow: 0 0 26px #3dff1244; } }
+
+/* ---------- pantallas chicas ---------- */
+
+@media (max-width: 820px) {
+    .app { padding: 14px 14px 22px; gap: 14px; }
+    header { gap: 12px; }
+    .tabs { order: 3; flex-basis: 100%; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .tab { padding: 9px 16px; font-size: 14px; flex: none; }
+    .chips { margin-left: auto; }
+    .hero { grid-template-columns: 1fr; padding: 28px 22px; gap: 28px; }
+    .stat { grid-template-columns: 100px 1fr; }
+    .px { font-size: 28px; }
+    .card { padding: 18px; border-radius: 24px; }
+    .stack-form.grid2 { grid-template-columns: 1fr; }
+    #panel-chat { height: calc(100dvh - 190px); }
+    .message { max-width: 88%; }
+}
