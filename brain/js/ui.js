@@ -4,6 +4,10 @@ import { fmtWhen, fmtRepeat } from "./reminders.js";
 import { unlockAudio, requestNotifications, notificationsState } from "./alerts.js";
 
 const $ = (id) => document.getElementById(id);
+// Dentro del panel del holograma se muestra en modo compacto (solo chat + pestañas chicas).
+const embedded = new URLSearchParams(location.search).has("embed") || window.self !== window.top;
+if (embedded) document.body.classList.add("embed");
+
 const chat = $("chat"), form = $("messageForm"), input = $("messageInput"), sendButton = $("sendButton");
 
 // ---------- chat ----------
@@ -114,11 +118,11 @@ $("aiButton").addEventListener("click", () => {
 });
 
 // ---------- pestañas ----------
-function openTab(name) {
+function openTab(name, { focus = true } = {}) {
     activeTab = name;
     document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
     document.querySelectorAll(".panel").forEach(pn => pn.classList.toggle("active", pn.id === "panel-" + name));
-    if (name === "chat") { document.querySelector('.tab[data-tab="chat"]').classList.remove("has-new"); chat.scrollTop = chat.scrollHeight; input.focus(); }
+    if (name === "chat") { document.querySelector('.tab[data-tab="chat"]').classList.remove("has-new"); chat.scrollTop = chat.scrollHeight; if (focus) input.focus(); }
     if (name === "profile") fillProfile();
     if (name === "knowledge") renderKnowledge();
     if (name === "reminders") renderReminders();
@@ -233,4 +237,5 @@ $("docFile").addEventListener("change", async (e) => {
 
 renderStats();
 renderHologram();
-window.ariaChat = { refresh: updateStatus, addMessage };
+if (embedded) openTab("chat", { focus: false });
+window.ariaChat = { refresh: updateStatus, addMessage, openChat: () => openTab("chat") };
