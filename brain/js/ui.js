@@ -28,7 +28,12 @@ function addMessage(content, type, actions = []) {
 }
 
 let lastAria = null;   // las acciones (enlaces) se cuelgan del último mensaje de ARIA
-window.addEventListener("aria:response", (e) => { lastAria = addMessage(e.detail, "aria"); });
+let activeTab = "home";
+window.addEventListener("aria:response", (e) => {
+    lastAria = addMessage(e.detail, "aria");
+    if (activeTab !== "chat") document.querySelector('.tab[data-tab="chat"]').classList.add("has-new");
+    renderStats();
+});
 window.addEventListener("aria:action", (e) => {
     if (!lastAria) return;
     const row = document.createElement("div");
@@ -42,7 +47,15 @@ window.addEventListener("aria:action", (e) => {
     chat.scrollTop = chat.scrollHeight;
 });
 
-function updateStatus() { $("brainStatus").textContent = ariaBrain.initialized ? "● BRAIN ACTIVO" : "● ERROR"; }
+function updateStatus() { $("brainStatus").textContent = ariaBrain.initialized ? "BRAIN ACTIVO" : "ERROR"; }
+
+// Números del inicio y nombre en la cabecera.
+function renderStats() {
+    $("stReminders").textContent = ariaBrain.reminders.list().length;
+    $("stDocs").textContent = ariaBrain.rag.listDocuments().length;
+    $("stNotes").textContent = ariaBrain.memory.recall().length;
+    $("userName").textContent = ariaBrain.profile.displayName || "Tu perfil";
+}
 updateStatus();
 
 form.addEventListener("submit", async (event) => {
@@ -57,6 +70,7 @@ form.addEventListener("submit", async (event) => {
         const response = await ariaBrain.processMessage(message);
         typing.remove();
         if (response) lastAria = addMessage(response, "aria", ariaBrain.lastActions);
+        renderStats();
     } catch (error) {
         console.error("Error en el chat:", error);
         typing.remove();
@@ -89,13 +103,18 @@ $("aiButton").addEventListener("click", () => {
 });
 
 // ---------- pestañas ----------
-document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
-    document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + btn.dataset.tab));
-    if (btn.dataset.tab === "profile") fillProfile();
-    if (btn.dataset.tab === "knowledge") renderKnowledge();
-    if (btn.dataset.tab === "reminders") renderReminders();
-}));
+function openTab(name) {
+    activeTab = name;
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".panel").forEach(pn => pn.classList.toggle("active", pn.id === "panel-" + name));
+    if (name === "chat") { document.querySelector('.tab[data-tab="chat"]').classList.remove("has-new"); chat.scrollTop = chat.scrollHeight; input.focus(); }
+    if (name === "profile") fillProfile();
+    if (name === "knowledge") renderKnowledge();
+    if (name === "reminders") renderReminders();
+    if (name === "home") renderStats();
+}
+document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => openTab(btn.dataset.tab)));
+document.querySelectorAll("[data-go]").forEach(btn => btn.addEventListener("click", () => openTab(btn.dataset.go)));
 
 function li(text, onDelete, label = "Borrar") {
     const el = document.createElement("li");
@@ -120,7 +139,7 @@ function renderReminders() {
     const state = notificationsState();
     $("notifyState").textContent = state === "granted" ? "Avisos del navegador: activados ✓" : state === "denied" ? "Bloqueados en el navegador" : state === "unsupported" ? "No disponibles en este navegador" : "";
 }
-window.addEventListener("aria:reminders-changed", renderReminders);
+window.addEventListener("aria:reminders-changed", () => { renderReminders(); renderStats(); });
 renderReminders();
 
 $("reminderForm").addEventListener("submit", (e) => {
@@ -152,8 +171,8 @@ function fillProfile() {
     const d = ariaBrain.profile.data;
     for (const [k, id] of Object.entries(F)) $(id).value = Array.isArray(d[k]) ? d[k].join(", ") : d[k];
 }
-function afterProfileChange() { ariaBrain.rag.reindex({ memory: ariaBrain.memory, profile: ariaBrain.profile }); }
-window.addEventListener("aria:profile-changed", fillProfile);
+function afterProfileChange() { ariaBrain.rag.reindex({ memory: ariaBrain.memory, profile: ariaBrain.profile }); renderStats(); }
+window.addEventListener("aria:profile-changed", () => { fillProfile(); renderStats(); });
 $("profileForm").addEventListener("submit", (e) => {
     e.preventDefault();
     const fields = {};
@@ -178,6 +197,7 @@ function renderKnowledge() {
     const nl = ariaBrain.memory.recall();
     if (!nl.length) { const e = document.createElement("li"); e.className = "empty"; e.textContent = "No hay notas todavía."; notes.appendChild(e); }
     for (const n of nl) notes.appendChild(li(n.content, () => { ariaBrain.memory.forget(n.id); afterProfileChange(); renderKnowledge(); }));
+    renderStats();
 }
 function docMessage(text) { $("docMsg").textContent = text; setTimeout(() => { $("docMsg").textContent = ""; }, 4000); }
 
@@ -200,4 +220,5 @@ $("docFile").addEventListener("change", async (e) => {
     renderKnowledge();
 });
 
+renderStats();
 window.ariaChat = { refresh: updateStatus, addMessage };

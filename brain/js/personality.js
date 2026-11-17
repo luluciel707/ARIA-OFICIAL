@@ -11,7 +11,7 @@ export const ARIA_PERSONALITY = {
         audience: CONFIG.personality.audience
     },
 
-    traits: ["Dulce", "Alegre", "Juguetona", "Cálida", "Paciente", "Curiosa", "Atenta", "Respetuosa", "Tierna", "Feliz", "Amable", "Graciosa"],
+    traits: ["Dulce", "Alegre", "Juguetona", "Cálida", "Paciente", "Curiosa", "Atenta", "Respetuosa"],
 
     communication: {
         tone: "Cercano, dulce y alegre, con toques de humor suave",
