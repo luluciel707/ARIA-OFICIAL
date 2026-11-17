@@ -31,7 +31,8 @@
             </nav>
 
             <div class="chips">
-                <span class="chip"><i class="dot"></i><span id="brainStatus">INICIANDO</span></span>
+                <span class="chip" id="brainChip"><i class="dot"></i><span id="brainStatus">INICIANDO</span></span>
+                <span class="chip"><i class="dot off" id="holoDot"></i><span id="holoStatus">ESPERANDO HOLOGRAMA</span></span>
                 <button type="button" class="chip user" id="userChip" data-go="profile">
                     <span class="avatar">✦</span><b id="userName">Tu perfil</b>
                 </button>
@@ -150,7 +151,7 @@
             <ul id="noteList" class="list"></ul>
         </section>
 
-        <footer>ARIA BRAIN v0.2 · LOCAL SYSTEM</footer>
+        <footer>ARIA BRAIN v0.3 · LOCAL SYSTEM</footer>
     </main>
 
     <script type="module" src="./js/ui.js"></script>
