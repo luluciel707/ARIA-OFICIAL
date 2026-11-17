@@ -24,6 +24,7 @@ import { webSearch, extractLookupQuery, isInfoQuestion, shorten, searchLinks } f
 import { smalltalk } from "./smalltalk.js";
 import { speechText, fmt, pick, daypart } from "./text.js";
 import { chime, startRinging, stopRinging, notify } from "./alerts.js";
+import { HologramCues, chooseCue } from "./hologram.js";
 
 // Habilidades anteriores (música, videos, etc.). Es opcional: si skills.js no está, se omite.
 let legacy = null;
@@ -46,6 +47,8 @@ class ARIABrain {
         this.initialized = false;
         this.hologramConnected = false;
         this.localGatewayAvailable = false;
+        this.greetedHologram = false;
+        this.cues = new HologramCues((type, payload) => this.sendToHologram(type, payload));
         this.ai = generativeEngine;
     }
 
@@ -145,6 +148,7 @@ class ARIABrain {
         }
         if (item.kind === "reminder" || late) chime(); else startRinging();
         notify(item.kind === "alarm" ? "⏰ Alarma" : item.kind === "timer" ? "⏳ Temporizador" : "🔔 Recordatorio", text.replace(/^\S+\s/, ""));
+        this.cues.play(item.kind === "reminder" ? "reminder" : "alarm", text);
         this.announce(text);
         window.dispatchEvent(new CustomEvent("aria:ring", { detail: { item, text } }));
     }
@@ -195,11 +199,14 @@ class ARIABrain {
         if (!data || typeof data !== "object") return;
         if (data.source !== "hologram") return;
 
+        this.markHologram();
         const payload = data.payload || {};
 
         switch (data.type) {
             case "USER_MESSAGE": {
-                if (typeof payload.text !== "string") return;
+                if (typeof payload.text !== "string" || !payload.text.trim()) return;
+                // La interfaz muestra lo que se dijo por voz en el holograma.
+                window.dispatchEvent(new CustomEvent("aria:user", { detail: payload.text.trim() }));
                 this.processMessage(payload.text).then(response => {
                     if (!response) return;
                     window.dispatchEvent(new CustomEvent("aria:response", { detail: response }));
@@ -207,13 +214,34 @@ class ARIABrain {
                 });
                 break;
             }
-            case "HOLOGRAM_READY":
+            case "HOLOGRAM_READY": {
+                this.setState("IDLE");
+                this.greetOnConnect();
+                break;
+            }
             case "HOLOGRAM_STATUS":
-                this.hologramConnected = true;
                 this.setState("IDLE");
                 break;
         }
     }
+
+    markHologram() {
+        const was = this.hologramConnected;
+        this.hologramConnected = true;
+        if (!was) window.dispatchEvent(new CustomEvent("aria:hologram", { detail: { connected: true } }));
+    }
+
+    // Al conectarse el holograma, ARIA saluda (una vez por sesión del cerebro).
+    greetOnConnect() {
+        if (this.greetedHologram || CONFIG.hologram?.greetOnConnect === false) return;
+        this.greetedHologram = true;
+        this.cues.play("greet");
+        this.sendToHologram("SAY", { text: speechText(this.getGreeting()) });
+    }
+
+    // =====================================
+    // ESTADOS
+    // =====================================
 
     setState(state) { this.sendToHologram("STATE", { state: String(state).toUpperCase() }); }
 
@@ -275,6 +303,8 @@ class ARIABrain {
         this.conversation.add("user", message);
         this.setState("THINKING");
         this.lastActions = [];
+        const remindersBefore = this.reminders.list().length;
+        const intent = recognizeIntent(message);
 
         let actions = [];
         const take = (r) => {
@@ -316,6 +346,11 @@ class ARIABrain {
             if (typeof response !== "string" || !response.trim()) throw new Error("Sin respuesta válida.");
 
             this.conversation.add("assistant", response);
+            this.cues.play(chooseCue({
+                safetyKind: safety.kind, intent,
+                createdReminder: this.reminders.list().length > remindersBefore,
+                hasActions: actions.length > 0, kb: searchKnowledge(message).found
+            }), response);
             this.sendToHologram("SAY", { text: speechText(response) });
             this.lastActions = actions;
             this.setState("IDLE");
@@ -326,6 +361,7 @@ class ARIABrain {
             console.error("Error en ARIA BRAIN:", error);
             const fallback = "Tuve un pequeño problema procesando eso. ¿Lo intentamos otra vez? 🙈";
             this.setState("ERROR");
+            this.cues.play("sad", fallback);
             this.sendToHologram("SAY", { text: speechText(fallback) });
             return fallback;
         }

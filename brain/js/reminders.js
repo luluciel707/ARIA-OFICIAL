@@ -333,6 +333,7 @@ export class ARIAReminders extends EventTarget {
         this.ringing = new Map();
         this.lastFired = null;
         this.timer = null;
+        this.worker = null;
         this._load();
     }
 
@@ -388,13 +389,29 @@ export class ARIAReminders extends EventTarget {
         return [];
     }
 
+    // El reloj corre en un Web Worker: los navegadores frenan los temporizadores de las pestañas
+    // en segundo plano (hasta 1 minuto de atraso), pero no los de un worker. Así las alarmas
+    // suenan a tiempo aunque el holograma esté al frente y este cerebro quede detrás.
     start() {
-        if (this.timer) return;
+        if (this.timer || this.worker) return;
         this.catchUp();
-        this.timer = setInterval(() => this.tick(), 1000);
+        try {
+            const src = "setInterval(() => postMessage(0), 1000);";
+            this.worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+            this.worker.onmessage = () => this.tick();
+        } catch (_) {
+            this.worker = null;
+            this.timer = setInterval(() => this.tick(), 1000);
+        }
+        if (typeof document !== "undefined") {
+            document.addEventListener("visibilitychange", () => { if (!document.hidden) this.tick(); });
+        }
     }
 
-    stop() { clearInterval(this.timer); this.timer = null; }
+    stop() {
+        clearInterval(this.timer); this.timer = null;
+        this.worker?.terminate(); this.worker = null;
+    }
 
     // Lo que venció mientras la página estaba cerrada.
     catchUp() {

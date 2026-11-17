@@ -1,6 +1,6 @@
 export const CONFIG = {
     name: "ARIA",
-    version: "0.2.0",
+    version: "0.3.0",
 
     channelName: "aria-hologram",
 
@@ -42,6 +42,28 @@ export const CONFIG = {
     // Memoria de largo plazo (RAG local).
     rag: {
         maxUserChars: 300000   // tope de texto de documentos propios (localStorage)
+    },
+
+    // Conexión con el holograma (BroadcastChannel). Los nombres de expresión siguen los
+    // presets estándar de VRM (neutral, happy, sad, relaxed, surprised, angry). Los gestos
+    // son los nombres que tu gestures.js reconozca: cambialos acá si los tuyos son otros.
+    hologram: {
+        greetOnConnect: true,          // ARIA saluda por voz al conectarse el holograma
+        cues: {
+            neutral:  { expression: "neutral" },
+            greet:    { expression: "happy",     gesture: "wave" },
+            farewell: { expression: "happy",     gesture: "wave" },
+            happy:    { expression: "happy",     gesture: "nod" },
+            playful:  { expression: "happy",     gesture: "wave" },
+            confirm:  { expression: "happy",     gesture: "nod" },
+            explain:  { expression: "relaxed",   gesture: "explain" },
+            relaxed:  { expression: "relaxed" },
+            sad:      { expression: "sad" },
+            concern:  { expression: "sad",       gesture: "nod" },
+            alert:    { expression: "surprised" },
+            alarm:    { expression: "surprised", gesture: "wave" },
+            reminder: { expression: "happy",     gesture: "wave" }
+        }
     },
 
     personality: {

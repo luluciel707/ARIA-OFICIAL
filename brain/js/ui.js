@@ -29,6 +29,17 @@ function addMessage(content, type, actions = []) {
 
 let lastAria = null;   // las acciones (enlaces) se cuelgan del último mensaje de ARIA
 let activeTab = "home";
+
+// Lo que se dice por voz en el holograma también aparece en el chat.
+window.addEventListener("aria:user", (e) => { addMessage(e.detail, "user"); });
+
+// Estado de la conexión con el holograma.
+function renderHologram() {
+    const on = ariaBrain.hologramConnected;
+    $("holoStatus").textContent = on ? "HOLOGRAMA CONECTADO" : "ESPERANDO HOLOGRAMA";
+    $("holoDot").classList.toggle("off", !on);
+}
+window.addEventListener("aria:hologram", renderHologram);
 window.addEventListener("aria:response", (e) => {
     lastAria = addMessage(e.detail, "aria");
     if (activeTab !== "chat") document.querySelector('.tab[data-tab="chat"]').classList.add("has-new");
@@ -221,4 +232,5 @@ $("docFile").addEventListener("change", async (e) => {
 });
 
 renderStats();
+renderHologram();
 window.ariaChat = { refresh: updateStatus, addMessage };
