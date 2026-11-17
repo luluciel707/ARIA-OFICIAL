@@ -7,28 +7,40 @@
   <title>ARIA</title>
   <link rel="icon" href="data:,">
   <style>
-    :root { color-scheme: dark; --cyan: #22e6ff; --violet: #9b6bff; }
+    :root { color-scheme: dark; --cyan: #22e6ff; --violet: #9b6bff; --green: #3dff12; --pink: #ff2d87; }
     html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
     iframe { border: 0; display: block; }
 
     /* El holograma ocupa toda la pantalla. */
     #hologram { position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    /* El cerebro (chat) es un panel que se abre y se cierra. */
+    /* El cerebro (chat) es un panel que se abre y se cierra.
+       Cerrado NO usa display:none: el cerebro tiene que seguir "vivo" (alarmas, voz, avisos). */
     #brain-panel {
       position: fixed;
       z-index: 20;
       left: calc(12px + env(safe-area-inset-left, 0px));
       bottom: calc(76px + env(safe-area-inset-bottom, 0px));
-      width: min(380px, calc(100vw - 24px));
-      height: min(560px, 64vh);
+      width: min(400px, calc(100vw - 24px));
+      height: min(600px, 68dvh);
       border: 1px solid color-mix(in srgb, var(--violet) 60%, transparent);
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
       background: #070914;
       box-shadow: 0 0 40px #8d55ff30;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(14px) scale(0.98);
+      transition: opacity 0.2s, transform 0.2s, visibility 0s linear 0.2s;
     }
-    #brain-panel[hidden] { display: none; }
+    #brain-panel.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      transition: opacity 0.2s, transform 0.2s, visibility 0s;
+    }
     #brain { width: 100%; height: 100%; }
 
     #toggle-brain {
@@ -36,40 +48,83 @@
       z-index: 21;
       left: calc(12px + env(safe-area-inset-left, 0px));
       bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-      padding: 12px 18px;
-      font: 600 14px/1 system-ui, sans-serif;
+      padding: 12px 20px;
+      font: 700 14px/1 system-ui, sans-serif;
       letter-spacing: 0.04em;
       color: #05030c;
-      background: var(--cyan);
+      background: var(--green);
       border: 0;
       border-radius: 999px;
       cursor: pointer;
     }
+    /* Punto rosa: ARIA dijo algo mientras el chat estaba cerrado. */
+    #toggle-brain.has-new::after {
+      content: "";
+      position: absolute;
+      top: -3px; right: -3px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 10px var(--pink);
+    }
   </style>
+
+  <script>
+    // El canal se abre ANTES de que carguen los iframes, para no perder el aviso de
+    // "holograma listo" si llega antes de que el cerebro esté escuchando.
+    const link = "BroadcastChannel" in window ? new BroadcastChannel("aria-hologram") : null;
+    let lastReady = null;
+    if (link) {
+      link.onmessage = (event) => {
+        const msg = event.data;
+        if (!msg || typeof msg !== "object") return;
+        if (msg.source === "hologram" && msg.type === "HOLOGRAM_READY") lastReady = msg;
+        if (msg.source === "brain" && msg.type === "SAY") ariaSpoke();
+      };
+    }
+  </script>
 </head>
 <body>
   <!-- Los dos iframes comparten origen, así que se hablan por BroadcastChannel igual que en dos pestañas. -->
   <iframe id="hologram" src="hologram/index.html" title="ARIA holograma"
           allow="microphone; autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
 
-  <div id="brain-panel" hidden>
-    <iframe id="brain" src="brain/index.html" title="ARIA cerebro"></iframe>
+  <div id="brain-panel" aria-hidden="true" inert>
+    <iframe id="brain" src="brain/index.html?embed=1" title="ARIA cerebro"
+            allow="autoplay; clipboard-write"></iframe>
   </div>
 
-  <button id="toggle-brain" type="button" aria-expanded="false">Chat</button>
+  <button id="toggle-brain" type="button" aria-expanded="false" aria-controls="brain-panel">Chat</button>
 
   <script>
     const panel = document.getElementById("brain-panel");
     const button = document.getElementById("toggle-brain");
-    const frame = document.getElementById("brain");
+    const brainFrame = document.getElementById("brain");
 
-    // El cerebro tiene que estar cargado siempre (aunque el panel esté cerrado): hay que
-    // dejarlo en el documento. Se oculta con "hidden" y sigue funcionando en segundo plano.
-    button.addEventListener("click", () => {
-      panel.hidden = !panel.hidden;
-      button.setAttribute("aria-expanded", String(!panel.hidden));
-      button.textContent = panel.hidden ? "Chat" : "Cerrar chat";
-      if (!panel.hidden) frame.contentWindow?.document.getElementById("messageInput")?.focus();
+    function setOpen(open) {
+      panel.classList.toggle("open", open);
+      panel.inert = !open;
+      panel.setAttribute("aria-hidden", String(!open));
+      button.setAttribute("aria-expanded", String(open));
+      button.textContent = open ? "Cerrar chat" : "Chat";
+      if (open) {
+        button.classList.remove("has-new");
+        try { brainFrame.contentWindow?.ariaChat?.openChat?.(); } catch (_) { /* aún cargando */ }
+      }
+    }
+
+    button.addEventListener("click", () => setOpen(!panel.classList.contains("open")));
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && panel.classList.contains("open")) setOpen(false); });
+
+    // ARIA habló y el chat está cerrado: se marca el botón.
+    function ariaSpoke() {
+      if (!panel.classList.contains("open")) button.classList.add("has-new");
+    }
+
+    // Si el holograma ya estaba listo cuando el cerebro terminó de cargar, se le repite el aviso
+    // (así el cerebro sabe que hay holograma conectado y lo saluda).
+    brainFrame.addEventListener("load", () => {
+      if (link && lastReady) setTimeout(() => link.postMessage(lastReady), 400);
     });
   </script>
 </body>
